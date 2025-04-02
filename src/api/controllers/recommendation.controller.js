@@ -1,7 +1,7 @@
 'use strict';
 
-const RecommendationService = require('../services/recommendation.service');
-const { OK, CREATED } = require('../core/success.response');
+const RecommendationService = require('../../services/recommendation.service');
+const { OK, CREATED } = require('../../core/success.response');
 
 class RecommendationController {
   // Tạo đề xuất mới
@@ -161,6 +161,26 @@ class RecommendationController {
       return new OK({
         message: 'Tạo đề xuất theo mùa thành công',
         metadata: recommendation
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Lấy đề xuất hàng ngày
+  static async getDailyRecommendation(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      
+      // Tìm đề xuất hàng ngày hiện có hoặc tạo mới
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const dailyRecommendation = await RecommendationService.findOrCreateDailyRecommendation(userId, today);
+      
+      return new OK({
+        message: 'Lấy đề xuất hàng ngày thành công',
+        metadata: dailyRecommendation
       }).send(res);
     } catch (error) {
       next(error);

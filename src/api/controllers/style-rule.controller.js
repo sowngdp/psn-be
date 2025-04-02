@@ -55,6 +55,57 @@ class StyleRuleController {
       next(error);
     }
   }
+
+  // Lấy quy tắc phong cách theo ID
+  static async getStyleRuleById(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.userId;
+      
+      const styleRule = await StyleRuleService.getStyleRuleById(id, userId);
+      
+      return new OK({
+        message: 'Lấy quy tắc phong cách thành công',
+        metadata: styleRule
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Cập nhật quy tắc phong cách
+  static async updateStyleRule(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.userId;
+      const updateData = req.body;
+      
+      const updatedRule = await StyleRuleService.updateStyleRule(id, updateData, userId);
+      
+      return new OK({
+        message: 'Cập nhật quy tắc phong cách thành công',
+        metadata: updatedRule
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Xóa quy tắc phong cách
+  static async deleteStyleRule(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.userId;
+      
+      await StyleRuleService.deleteStyleRule(id, userId);
+      
+      return new OK({
+        message: 'Xóa quy tắc phong cách thành công'
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = StyleRuleController; 

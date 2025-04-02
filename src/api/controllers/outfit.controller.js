@@ -1,7 +1,7 @@
 'use strict';
 
-const OutfitService = require('../services/outfit.service');
-const { OK, CREATED } = require('../core/success.response');
+const OutfitService = require('../../services/outfit.service');
+const { OK, CREATED } = require('../../core/success.response');
 
 class OutfitController {
   // Tạo mới outfit

@@ -1,7 +1,7 @@
 'use strict';
 
-const ItemService = require('../services/item.service');
-const { OK, CREATED } = require('../core/success.response');
+const ItemService = require('../../services/item.service');
+const { OK, CREATED } = require('../../core/success.response');
 
 class ItemController {
   // Tạo mới item

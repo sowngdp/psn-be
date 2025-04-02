@@ -2,8 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { authentication } = require('../../auth/authUtils');
-const RecommendationController = require('../../controllers/recommendation.controller');
+const { authentication } = require('../middlewares/authentication');
+const RecommendationController = require('../controllers/recommendation.controller');
 
 /**
  * @swagger
@@ -26,7 +26,7 @@ const RecommendationController = require('../../controllers/recommendation.contr
  *       401:
  *         description: Không được ủy quyền
  */
-router.get('/daily', authentication, RecommendationController.getDailyRecommendation);
+// router.get('/daily', authentication, RecommendationController.getDailyRecommendation);
 
 /**
  * @swagger

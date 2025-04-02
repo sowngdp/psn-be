@@ -1,9 +1,9 @@
 'use strict';
 
-const recommendationModel = require('../models/models/Recommendation');
-const outfitModel = require('../models/models/Outfit');
-const itemModel = require('../models/models/Item');
-const userStyleProfileModel = require('../models/models/UserStyleProfile');
+const recommendationModel = require('../db/models/recommendation.model');
+const outfitModel = require('../db/models/outfit.model');
+const itemModel = require('../db/models/item.model');
+const userStyleProfileModel = require('../db/models/user-style-profile.model');
 const StyleRuleService = require('./style-rule.service');
 const { BadRequestError, NotFoundError } = require('../core/error.response');
 const { Types } = require('mongoose');
@@ -687,29 +687,31 @@ class RecommendationService {
     return updatedRecommendation;
   }
   
-  // Lấy đề xuất hàng ngày
-  static async getDailyRecommendation(userId) {
-    // Kiểm tra xem có đề xuất ngày hôm nay chưa
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
+  // Tìm hoặc tạo đề xuất hàng ngày
+  static async findOrCreateDailyRecommendation(userId, date) {
+    // Tìm đề xuất hàng ngày đã tồn tại
     const existingRecommendation = await recommendationModel.findOne({
       userId,
       type: 'daily',
-      createdAt: { $gte: today }
+      createdAt: {
+        $gte: date,
+        $lt: new Date(date.getTime() + 24 * 60 * 60 * 1000)
+      }
     });
     
+    // Nếu đã có, trả về đề xuất đó
     if (existingRecommendation) {
-      return this.getRecommendationById(existingRecommendation._id, userId);
+      return existingRecommendation;
     }
     
-    // Tạo đề xuất mới
+    // Nếu chưa có, tạo đề xuất mới
     const newRecommendation = await this.createRecommendation({
       userId,
-      type: 'daily'
+      type: 'daily',
+      context: {}
     });
     
-    return this.getRecommendationById(newRecommendation._id, userId);
+    return newRecommendation;
   }
 }
 

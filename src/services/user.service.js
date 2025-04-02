@@ -1,13 +1,12 @@
 'use strict';
 
-const userModel = require('../models/models/User');
-const userStyleProfileModel = require('../models/models/UserStyleProfile');
-const { getInfoData } = require('../utils');
+const userModel = require('../db/models/user.model');
+const userStyleProfileModel = require('../db/models/user-style-profile.model');
 const { BadRequestError, NotFoundError, AuthFailureError } = require('../core/error.response');
 const { Types } = require('mongoose');
 const bcrypt = require('bcryptjs');
 const JWT = require('jsonwebtoken');
-const { JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRATION } = require('../config/env');
+const { JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRATION } = require('../configs/env');
 
 class UserService {
   // Tạo người dùng mới

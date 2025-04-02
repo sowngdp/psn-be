@@ -36,4 +36,7 @@ uploads/*
 !uploads/.gitkeep
 
 # Data directory
-data/ 
+data/
+
+# Giữ lại tài liệu API
+!docs/api-docs.json 

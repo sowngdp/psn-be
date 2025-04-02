@@ -1,51 +1,58 @@
 'use strict';
 
-const {
-    StatusCodes,
-    ReasonPhrases
-} = require('../utils/httpStatusCode');
-
+// Định nghĩa các mã lỗi HTTP
+const HttpStatusCode = {
+    OK: 200,
+    CREATED: 201,
+    NO_CONTENT: 204,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    CONFLICT: 409,
+    UNPROCESSABLE_ENTITY: 422,
+    INTERNAL_SERVER: 500
+};
 
 class ErrorResponse extends Error {
     constructor(message, status) {
         super(message);
         this.status = status;
-
-    };
-};
+    }
+}
 
 class ConflictRequestError extends ErrorResponse {
-    constructor(message = ReasonPhrases.CONFLICT, status = StatusCodes.CONFLICT) {
-        super(message, status);
-    };
-};
+    constructor(message = 'Conflict Error', statusCode = HttpStatusCode.CONFLICT) {
+        super(message, statusCode);
+    }
+}
 
 class BadRequestError extends ErrorResponse {
-    constructor(message = ReasonPhrases.BAD_REQUEST, status = StatusCodes.BAD_REQUEST) {
-        super(message, status);
+    constructor(message = 'Bad Request Error', statusCode = HttpStatusCode.BAD_REQUEST) {
+        super(message, statusCode);
     }
 }
 
 class AuthFailureError extends ErrorResponse {
-    constructor(message = ReasonPhrases.UNAUTHORIZED, status = StatusCodes.UNAUTHORIZED) {
-        super(message, status);
+    constructor(message = 'Authentication Error', statusCode = HttpStatusCode.UNAUTHORIZED) {
+        super(message, statusCode);
     }
 }
 
 class NotFoundError extends ErrorResponse {
-    constructor(message = ReasonPhrases.NOT_FOUND, status = StatusCodes.NOT_FOUND) {
-        super(message, status);
+    constructor(message = 'Not Found Error', statusCode = HttpStatusCode.NOT_FOUND) {
+        super(message, statusCode);
     }
 }
 
 class ForbiddenError extends ErrorResponse {
-    constructor(message = ReasonPhrases.FORBIDDEN, status = StatusCodes.FORBIDDEN) {
-        super(message, status);
+    constructor(message = 'Forbidden Error', statusCode = HttpStatusCode.FORBIDDEN) {
+        super(message, statusCode);
     }
 }
 
 class InternalServerError extends ErrorResponse {
-    constructor(message = ReasonPhrases.INTERNAL_SERVER_ERROR, statusCode = StatusCodes.INTERNAL_SERVER_ERROR) {
+    constructor(message = 'Internal Server Error', statusCode = HttpStatusCode.INTERNAL_SERVER) {
         super(message, statusCode);
     }
 }
@@ -57,4 +64,4 @@ module.exports = {
     NotFoundError,
     ForbiddenError,
     InternalServerError
-}
+};

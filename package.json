@@ -1,5 +1,5 @@
 {
-  "name": "PSN-BE",
+  "name": "psn-be",
   "version": "1.0.0",
   "description": "Backend API cho ứng dụng Personal Style Network",
   "main": "server.js",
@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "lint": "eslint src",
-    "seed": "node ./src/db/seed/index.js"
+    "seed": "node ./src/db/seed/index.js",
+    "docs": "node ./src/scripts/generate-docs.js",
+    "cleanup": "node ./src/scripts/cleanup-codebase.js"
   },
   "keywords": [],
   "author": "",

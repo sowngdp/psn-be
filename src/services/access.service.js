@@ -1,206 +1,216 @@
 'use strict';
 
-const userModel = require('../models/models/User');
-const bcrypt = require('bcrypt');
+const userModel = require('../db/models/user.model');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const KeyTokenService = require('./keyToken.service');
-const { createTokenPair, verifyJWT } = require('../auth/authUtils');
-const { getInfoData } = require('../utils');
+const jwt = require('jsonwebtoken');
 const { BadRequestError, AuthFailureError, ForbiddenError } = require('../core/error.response');
-
-const roleAccount = {
-  USER: 'USER',
-  WRITER: 'WRITER',
-  EDITOR: 'EDITOR',
-  ADMIN: 'ADMIN',
-};
+const { JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRATION } = require('../configs/env');
+const TokenService = require('../services/key-token.service');
+const KeyTokenService = require('../services/key-token.service');
 
 class AccessService {
-  // Đăng ký người dùng mới
   static async signUp({ name, email, password }) {
     // Kiểm tra email đã tồn tại chưa
     const holderUser = await userModel.findOne({ email }).lean();
     if (holderUser) {
-      throw new BadRequestError('Email đã được đăng ký!');
+      throw new BadRequestError('Email đã được đăng ký');
     }
 
     // Mã hóa mật khẩu
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Tạo mới người dùng
+    // Tạo user mới
     const newUser = await userModel.create({
-      name, 
-      email, 
+      name,
+      email,
       password: passwordHash,
-      roles: [roleAccount.USER]
+      roles: ['USER'],
+      isVerified: true, // Trong môi trường phát triển, đặt là true
     });
 
-    if (newUser) {
-      // Tạo cặp khóa public/private cho token
-      const privateKey = crypto.randomBytes(64).toString('hex');
-      const publicKey = crypto.randomBytes(64).toString('hex');
+    // Không trả về mật khẩu
+    const userWithoutPassword = { ...newUser.toObject() };
+    delete userWithoutPassword.password;
 
-      // Tạo token
-      const tokens = await createTokenPair({ 
-        userId: newUser._id, 
-        email 
-      }, publicKey, privateKey);
-
-      // Lưu token
-      const keyStore = await KeyTokenService.createKeyToken({
-        userId: newUser._id,
-        publicKey,
-        privateKey,
-        refreshToken: tokens.refreshToken
-      });
-
-      if (!keyStore) {
-        throw new BadRequestError('Lỗi khi tạo khóa token!');
-      }
-
-      // Trả về thông tin
-      return {
-        user: getInfoData({
-          fields: ['_id', 'name', 'email'],
-          object: newUser
-        }),
-        tokens
-      };
-    }
-
-    return null;
+    return userWithoutPassword;
   }
 
-  // Đăng nhập
+  static async signUpAdmin({ name, email, password }) {
+    // Kiểm tra email đã tồn tại chưa
+    const holderUser = await userModel.findOne({ email }).lean();
+    if (holderUser) {
+      throw new BadRequestError('Email đã được đăng ký');
+    }
+
+    // Mã hóa mật khẩu
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Tạo user mới
+    const newUser = await userModel.create({
+      name,
+      email,
+      password: passwordHash,
+      roles: ['ADMIN'],
+      isVerified: true, // Trong môi trường phát triển, đặt là true
+    });
+
+    // Không trả về mật khẩu
+    const userWithoutPassword = { ...newUser.toObject() };
+    delete userWithoutPassword.password;
+
+    return userWithoutPassword;
+  }
+
   static async login({ email, password }) {
-    // Kiểm tra email
-    const foundUser = await userModel.findOne({ email });
-    if (!foundUser) {
-      throw new BadRequestError('Email chưa được đăng ký!');
+    // Tìm user theo email
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      throw new BadRequestError('Email hoặc mật khẩu không chính xác');
     }
 
     // Kiểm tra mật khẩu
-    const match = await bcrypt.compare(password, foundUser.password);
+    const match = await bcrypt.compare(password, user.password);
     if (!match) {
-      throw new AuthFailureError('Mật khẩu không chính xác!');
+      throw new BadRequestError('Email hoặc mật khẩu không chính xác');
     }
 
-    // Tạo cặp khóa public/private
-    const privateKey = crypto.randomBytes(64).toString('hex');
-    const publicKey = crypto.randomBytes(64).toString('hex');
+    // Kiểm tra trạng thái tài khoản
+    if (!user.isVerified) {
+      throw new ForbiddenError('Tài khoản chưa được xác thực');
+    }
 
-    // Tạo token
-    const tokens = await createTokenPair({
-      userId: foundUser._id,
-      email
-    }, publicKey, privateKey);
-
-    // Lưu token
-    await KeyTokenService.createKeyToken({
-      userId: foundUser._id,
-      publicKey,
-      privateKey,
-      refreshToken: tokens.refreshToken
+    // Nếu xác thực thành công, tạo cặp khóa mới
+    const { publicKey, privateKey } = await KeyTokenService.createKeyToken({ 
+      userId: user._id,
+      refreshToken: null // Sẽ được cập nhật sau
     });
-
+    
+    // Tạo payload
+    const payload = {
+      userId: user._id,
+      email: user.email,
+      roles: user.roles
+    };
+    
+    // Tạo token với khóa mới
+    const tokens = await this.generateTokens(payload);
+    
+    // Cập nhật refreshToken trong database
+    await KeyTokenService.updateRefreshToken(user._id, null, tokens.refreshToken);
+    
     return {
-      user: getInfoData({
-        fields: ['_id', 'name', 'email'],
-        object: foundUser
-      }),
+      user,
       tokens
     };
   }
 
-  // Đăng xuất
-  static async logout(keyStore) {
-    const delKey = await KeyTokenService.removeTokenByUserId(keyStore.user);
-    return delKey;
-  }
-
-  // Làm mới token
-  static async handlerRefreshToken({ refreshToken, keyStore, user }) {
-    // Kiểm tra token đã được sử dụng trước đó chưa
-    const foundToken = await KeyTokenService.findByRefreshTokenUsed(refreshToken);
-    if (foundToken) {
-      // Phát hiện hành vi tái sử dụng refresh token
-      await KeyTokenService.removeTokenByUserId(user.userId);
-      throw new ForbiddenError('Phát hiện truy cập không hợp lệ!');
+  static async refreshToken({ refreshToken }) {
+    if (!refreshToken) {
+      throw new BadRequestError('Refresh token là bắt buộc');
     }
-
-    // Kiểm tra refreshToken có khớp với keyStore không
-    if (keyStore.refreshToken !== refreshToken) {
-      throw new AuthFailureError('Token không hợp lệ!');
-    }
-
-    // Xác thực token
+    
     try {
-      const decodeUser = await verifyJWT(refreshToken, keyStore.privateKey);
-      if (user.userId !== decodeUser.userId) {
-        throw new AuthFailureError('Token không chính xác!');
+      // Xác thực refresh token
+      const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+      
+      // Kiểm tra token trong database
+      const foundToken = await TokenService.findRefreshToken(refreshToken);
+      if (!foundToken) {
+        throw new AuthFailureError('Refresh token không hợp lệ');
       }
-
-      // Tạo cặp token mới
-      const tokens = await createTokenPair({
-        userId: user.userId,
-        email: user.email
-      }, keyStore.publicKey, keyStore.privateKey);
-
-      // Cập nhật token
-      await KeyTokenService.markTokenAsUsed(user.userId, refreshToken);
-      await KeyTokenService.updateRefreshToken(user.userId, tokens.refreshToken);
-
-      return {
-        user,
-        tokens
-      };
+      
+      // Tạo token mới
+      const payload = { userId: decoded.userId, roles: decoded.roles };
+      const tokens = await this.generateTokens(payload);
+      
+      // Xóa refresh token cũ
+      await TokenService.removeRefreshToken(refreshToken);
+      
+      return tokens;
     } catch (error) {
-      throw new AuthFailureError('Token không hợp lệ!');
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new AuthFailureError('Refresh token đã hết hạn');
+      }
+      throw new AuthFailureError('Refresh token không hợp lệ');
     }
   }
 
-  // Yêu cầu đặt lại mật khẩu
-  static async requestPasswordReset(email) {
+  static async logout({ refreshToken }) {
+    // Trong phiên bản đơn giản, không cần làm gì với refresh token
+    // Trong phiên bản thực tế, cần lưu refresh token vào blacklist hoặc xóa khỏi database
+    return { success: true };
+  }
+
+  static async requestPasswordReset({ email }) {
+    // Tìm user theo email
     const user = await userModel.findOne({ email });
     if (!user) {
-      throw new BadRequestError('Email không tồn tại!');
+      throw new BadRequestError('Email không tồn tại');
     }
 
-    // Tạo token đặt lại mật khẩu
-    const resetToken = user.generatePasswordReset();
+    // Tạo reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Lưu token vào database với thời hạn
+    const passwordResetExpires = Date.now() + 30 * 60 * 1000; // 30 phút
+    user.passwordResetToken = passwordResetToken;
+    user.passwordResetExpires = passwordResetExpires;
     await user.save();
 
-    // Trong thực tế, bạn sẽ gửi email với token này
-    // await sendResetPasswordEmail(user.email, resetToken);
-
-    return {
-      message: 'Kiểm tra email của bạn để được hướng dẫn đặt lại mật khẩu'
-    };
+    // Trong môi trường thực tế, gửi email với link đặt lại mật khẩu
+    // Ở đây trả về token để test
+    return { resetToken };
   }
 
-  // Đặt lại mật khẩu
-  static async resetPassword(token, password) {
+  static async resetPassword({ token, password }) {
+    // Hash token
+    const passwordResetToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Tìm user với token và thời hạn hợp lệ
     const user = await userModel.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+      passwordResetToken,
+      passwordResetExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      throw new BadRequestError('Token không hợp lệ hoặc đã hết hạn!');
+      throw new BadRequestError('Token không hợp lệ hoặc đã hết hạn');
     }
 
-    // Mã hóa mật khẩu mới
+    // Cập nhật mật khẩu mới
     const passwordHash = await bcrypt.hash(password, 10);
-
-    // Cập nhật mật khẩu và xóa token
     user.password = passwordHash;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
     await user.save();
 
-    return {
-      message: 'Mật khẩu đã được đặt lại thành công'
-    };
+    return { success: true };
+  }
+
+  static async generateTokens(payload) {
+    const accessToken = jwt.sign(
+      payload,
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRATION || '1h' }
+    );
+    
+    const refreshToken = jwt.sign(
+      payload,
+      JWT_REFRESH_SECRET,
+      { expiresIn: JWT_REFRESH_EXPIRATION || '7d' }
+    );
+    
+    // Lưu refresh token vào database (có thể sử dụng Redis cho tốc độ tốt hơn)
+    await TokenService.saveRefreshToken(payload.userId, refreshToken);
+    
+    return { accessToken, refreshToken };
   }
 }
 

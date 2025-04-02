@@ -1,7 +1,16 @@
+'use strict';
+
 const mongoose = require('mongoose');
 
 const OutfitSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+    },
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -16,50 +25,28 @@ const OutfitSchema = new mongoose.Schema(
         },
         position: {
           type: String,
-          enum: ['top', 'bottom', 'outerwear', 'shoes', 'accessory', 'other'],
+          enum: ['top', 'bottom', 'outer', 'accessory', 'footwear', 'other'],
         },
-        layerOrder: {
-          type: Number,
-          default: 0,
-        }
-      }
+      },
     ],
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    occasions: [{
-      type: String,
-      enum: ['casual', 'formal', 'business', 'party', 'workout', 'date', 'travel', 'beach', 'other'],
-    }],
-    seasons: [{
+    season: {
       type: String,
       enum: ['spring', 'summer', 'fall', 'winter', 'all'],
-    }],
-    weather: [{
+      default: 'all',
+    },
+    occasion: {
       type: String,
-      enum: ['sunny', 'rainy', 'snowy', 'windy', 'hot', 'cold', 'mild'],
-    }],
-    favorite: {
+    },
+    styleScore: {
+      type: Number,
+      min: 0,
+      max: 10,
+    },
+    tags: [String],
+    inCloset: {
       type: Boolean,
-      default: false,
+      default: true,
     },
-    imageUrl: {
-      type: String,
-    },
-    tags: [{
-      type: String,
-      trim: true,
-    }],
-    styleCategory: [{
-      type: String,
-      enum: ['casual', 'formal', 'business_casual', 'streetwear', 'vintage', 'bohemian', 'preppy', 'athletic', 'minimalist', 'other'],
-    }],
     wearCount: {
       type: Number,
       default: 0,
@@ -67,17 +54,25 @@ const OutfitSchema = new mongoose.Schema(
     lastWorn: {
       type: Date,
     },
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5,
+    wearHistory: [
+      {
+        date: {
+          type: Date,
+        },
+        occasion: {
+          type: String,
+        },
+        notes: {
+          type: String,
+        },
+      },
+    ],
+    imageUrl: {
+      type: String,
     },
-    isAiGenerated: {
+    isFavorite: {
       type: Boolean,
       default: false,
-    },
-    aiPrompt: {
-      type: String,
     },
   },
   {
@@ -85,30 +80,14 @@ const OutfitSchema = new mongoose.Schema(
   }
 );
 
+// Indexes
 OutfitSchema.index({ ownerId: 1 });
-OutfitSchema.index({ favorite: 1 });
-OutfitSchema.index({ occasions: 1 });
-OutfitSchema.index({ seasons: 1 });
+OutfitSchema.index({ season: 1 });
+OutfitSchema.index({ occasion: 1 });
 OutfitSchema.index({ 'items.itemId': 1 });
-OutfitSchema.index({ styleCategory: 1 });
+OutfitSchema.index({ inCloset: 1 });
+OutfitSchema.index({ lastWorn: -1 });
+OutfitSchema.index({ wearCount: -1 });
 OutfitSchema.index({ tags: 1 });
-
-// Middleware để tự động tăng wearCount cho các items khi outfit được mặc
-OutfitSchema.methods.markAsWorn = async function() {
-  this.wearCount += 1;
-  this.lastWorn = new Date();
-  
-  // Cập nhật các item trong outfit
-  const Item = mongoose.model('Item');
-  
-  for (const item of this.items) {
-    await Item.findByIdAndUpdate(item.itemId, {
-      $inc: { wearCount: 1 },
-      $set: { lastWorn: new Date() }
-    });
-  }
-  
-  return this.save();
-};
 
 module.exports = mongoose.model('Outfit', OutfitSchema); 

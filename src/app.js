@@ -1,85 +1,74 @@
 'use strict';
 
 const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const cors = require('cors');
-const { connectDB } = require('./config/db');
-const routes = require('./api/routes');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsDoc = require('swagger-jsdoc');
-const rateLimit = require('express-rate-limit');
-const { API_VERSION } = require('./config/env');
+const helmet = require('helmet');
+const compression = require('compression');
+const swaggerUI = require('swagger-ui-express');
+const swaggerSpecs = require('./configs/swagger');
+require('./configs/db');
 
+// Import routes
+const apiRoutes = require('./api/routes');
+
+// Khởi tạo app
 const app = express();
 
-// Kết nối database
-connectDB();
-
-// Cấu hình Swagger
-const swaggerOptions = {
-  swaggerDefinition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Personal Style Network API',
-      version: '1.0.0',
-      description: 'API cho ứng dụng Personal Style Network',
-    },
-    servers: [
-      {
-        url: `/${API_VERSION}/api`,
-        description: 'API version 1',
-      },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
-    },
-  },
-  apis: ['./src/api/routes/**/*.js'],
-};
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
-
-// Middlewares
+// Middleware
 app.use(morgan('dev'));
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(cors());
+app.use(helmet());
+app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 100, // Giới hạn mỗi IP tối đa 100 request trong 15 phút
-  standardHeaders: true,
-  legacyHeaders: false,
+// Thiết lập thư mục tĩnh
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Tạo thư mục uploads nếu chưa tồn tại
+const fs = require('fs');
+if (!fs.existsSync('./uploads')) {
+  fs.mkdirSync('./uploads', { recursive: true });
+}
+
+// API docs với Swagger
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpecs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "PSN API Documentation"
+}));
+
+// API routes
+app.use('/v1/api', apiRoutes);
+
+// Route mặc định
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Chào mừng đến với Personal Style Network API',
+    version: '1.0.0',
+    docs: '/api-docs'
+  });
 });
-app.use(limiter);
 
-// Routes
-app.use(`/${API_VERSION}/api`, routes);
-
-// Swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-
-// Xử lý 404
+// Xử lý lỗi 404
 app.use((req, res, next) => {
-  const error = new Error('Not Found');
+  const error = new Error('Không tìm thấy');
   error.status = 404;
   next(error);
 });
 
 // Xử lý lỗi
 app.use((error, req, res, next) => {
-  res.status(error.status || 500);
-  res.json({
+  const statusCode = error.status || 500;
+  return res.status(statusCode).json({
     status: 'error',
-    code: error.status || 500,
-    message: error.message || 'Internal Server Error',
+    code: statusCode,
+    message: error.message || 'Lỗi server',
+    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
   });
 });
 

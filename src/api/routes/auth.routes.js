@@ -2,8 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
-const AuthController = require('../../controllers/auth.controller');
-const { authentication } = require('../../auth/authUtils');
+const AuthController = require('../controllers/auth.controller');
+const { authentication } = require('../middlewares/authentication');
 
 /**
  * @swagger
@@ -16,7 +16,7 @@ const { authentication } = require('../../auth/authUtils');
  * @swagger
  * /auth/signup:
  *   post:
- *     summary: Đăng ký người dùng mới
+ *     summary: Đăng ký tài khoản mới
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -37,16 +37,46 @@ const { authentication } = require('../../auth/authUtils');
  *               password:
  *                 type: string
  *                 format: password
- *                 minLength: 6
- *               phoneNumber:
- *                 type: string
  *     responses:
  *       201:
  *         description: Đăng ký thành công
  *       400:
- *         description: Dữ liệu không hợp lệ hoặc email đã tồn tại
+ *         description: Dữ liệu không hợp lệ
  */
-router.post('/signup', AuthController.signUp);
+router.post('/signup', AuthController.register);
+
+/**
+ * @swagger
+ * /auth/register-admin:
+ *   post:
+ *     summary: Đăng ký tài khoản admin
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string 
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       201:
+ *         description: Đăng ký tài khoản admin thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ */
+router.post('/register-admin', AuthController.registerAdminAccount);
 
 /**
  * @swagger
@@ -74,25 +104,9 @@ router.post('/signup', AuthController.signUp);
  *       200:
  *         description: Đăng nhập thành công
  *       401:
- *         description: Đăng nhập thất bại
+ *         description: Thông tin đăng nhập không chính xác
  */
 router.post('/login', AuthController.login);
-
-/**
- * @swagger
- * /auth/logout:
- *   post:
- *     summary: Đăng xuất
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Đăng xuất thành công
- *       401:
- *         description: Không được ủy quyền
- */
-router.post('/logout', authentication, AuthController.logout);
 
 /**
  * @swagger
@@ -115,9 +129,36 @@ router.post('/logout', authentication, AuthController.logout);
  *       200:
  *         description: Làm mới token thành công
  *       401:
- *         description: Refresh token không hợp lệ hoặc hết hạn
+ *         description: Refresh token không hợp lệ
  */
 router.post('/refresh', AuthController.refreshToken);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Đăng xuất
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Đăng xuất thành công
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.post('/logout', authentication, AuthController.logout);
 
 /**
  * @swagger
@@ -139,9 +180,9 @@ router.post('/refresh', AuthController.refreshToken);
  *                 format: email
  *     responses:
  *       200:
- *         description: Gửi email đặt lại mật khẩu thành công
+ *         description: Đã gửi yêu cầu đặt lại mật khẩu
  *       404:
- *         description: Không tìm thấy email
+ *         description: Email không tồn tại
  */
 router.post('/request-reset', AuthController.requestPasswordReset);
 
@@ -166,12 +207,11 @@ router.post('/request-reset', AuthController.requestPasswordReset);
  *               password:
  *                 type: string
  *                 format: password
- *                 minLength: 6
  *     responses:
  *       200:
  *         description: Đặt lại mật khẩu thành công
  *       400:
- *         description: Token không hợp lệ hoặc hết hạn
+ *         description: Token không hợp lệ hoặc đã hết hạn
  */
 router.post('/reset-password', AuthController.resetPassword);
 

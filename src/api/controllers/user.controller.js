@@ -1,7 +1,7 @@
 'use strict';
 
-const UserService = require('../services/user.service');
-const { OK, CREATED } = require('../core/success.response');
+const UserService = require('../../services/user.service');
+const { OK, CREATED } = require('../../core/success.response');
 
 class UserController {
   // Lấy thông tin người dùng theo ID

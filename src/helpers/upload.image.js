@@ -1,10 +1,8 @@
 'use strict';
 
-
 const AWS = require('aws-sdk');
 const config = require('../configs/config.bucket');
 const s3 = require('../dbs/init.s3');
-
 
 class ImageService {
     static async uploadImages(files) {
@@ -40,7 +38,6 @@ class ImageService {
 }
 
 module.exports = ImageService;
-
 
 /*
 const express = require("express");

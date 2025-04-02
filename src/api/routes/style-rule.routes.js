@@ -2,8 +2,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { authentication } = require('../../auth/authUtils');
-const StyleRuleController = require('../../controllers/style-rule.controller');
+const { authentication } = require('../middlewares/authentication');
+const StyleRuleController = require('../controllers/style-rule.controller');
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ const StyleRuleController = require('../../controllers/style-rule.controller');
  *       401:
  *         description: Không được ủy quyền
  */
-router.get('/', authentication, StyleRuleController.getAllStyleRules);
+router.get('/', authentication, StyleRuleController.getStyleRules);
 
 /**
  * @swagger

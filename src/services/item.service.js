@@ -1,7 +1,7 @@
 'use strict';
 
-const itemModel = require('../models/models/Item');
-const outfitModel = require('../models/models/Outfit');
+const itemModel = require('../db/models/item.model');
+const outfitModel = require('../db/models/outfit.model');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../core/error.response');
 const { Types } = require('mongoose');
 

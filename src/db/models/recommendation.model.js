@@ -1,8 +1,10 @@
+'use strict';
+
 const mongoose = require('mongoose');
 
 const RecommendationSchema = new mongoose.Schema(
   {
-    ownerId: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -12,23 +14,18 @@ const RecommendationSchema = new mongoose.Schema(
       enum: ['daily', 'event', 'weather', 'season', 'style', 'occasion'],
       required: true,
     },
-    recommendedItems: [
-      {
-        itemId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Item',
-        },
-        score: {
-          type: Number,
-          min: 0,
-          max: 1,
-          default: 0,
-        },
-        reason: {
-          type: String,
-        },
-      },
-    ],
+    context: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'processing', 'completed', 'failed'],
+      default: 'pending',
+    },
+    message: {
+      type: String,
+    },
     recommendedOutfits: [
       {
         outfitId: {
@@ -39,55 +36,50 @@ const RecommendationSchema = new mongoose.Schema(
           type: Number,
           min: 0,
           max: 1,
-          default: 0,
         },
         reason: {
           type: String,
         },
       },
     ],
-    context: {
-      date: Date,
-      weather: {
-        temperature: Number,
-        condition: String,
-        humidity: Number,
+    suggestedItems: [
+      {
+        itemId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Item',
+        },
+        reason: {
+          type: String,
+        },
       },
-      occasion: String,
-      location: String,
-      promptText: String,
-    },
-    userFeedback: {
+    ],
+    feedback: {
       rating: {
         type: Number,
         min: 1,
         max: 5,
       },
-      comment: String,
+      comment: {
+        type: String,
+      },
       selectedOutfitId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Outfit',
       },
-      feedbackDate: Date,
+      createdAt: {
+        type: Date,
+      },
     },
-    aiModelInfo: {
-      modelName: String,
-      version: String,
-      params: mongoose.Schema.Types.Mixed,
+    createdAt: {
+      type: Date,
+      default: Date.now,
     },
-    isUsed: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  {
-    timestamps: true,
   }
 );
 
-RecommendationSchema.index({ ownerId: 1 });
+// Indexes
+RecommendationSchema.index({ userId: 1 });
 RecommendationSchema.index({ type: 1 });
-RecommendationSchema.index({ 'context.date': 1 });
-RecommendationSchema.index({ isUsed: 1 });
+RecommendationSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Recommendation', RecommendationSchema); 
