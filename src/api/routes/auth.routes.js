@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/auth.controller');
 const { authentication } = require('../middlewares/authentication');
+const validator = require('../middlewares/validator');
 
 /**
  * @swagger
@@ -43,7 +44,7 @@ const { authentication } = require('../middlewares/authentication');
  *       400:
  *         description: Dữ liệu không hợp lệ
  */
-router.post('/signup', AuthController.register);
+router.post('/signup', validator.register, AuthController.register);
 
 /**
  * @swagger
@@ -76,7 +77,7 @@ router.post('/signup', AuthController.register);
  *       400:
  *         description: Dữ liệu không hợp lệ
  */
-router.post('/register-admin', AuthController.registerAdminAccount);
+router.post('/register-admin', validator.register, AuthController.registerAdminAccount);
 
 /**
  * @swagger
@@ -106,7 +107,7 @@ router.post('/register-admin', AuthController.registerAdminAccount);
  *       401:
  *         description: Thông tin đăng nhập không chính xác
  */
-router.post('/login', AuthController.login);
+router.post('/login', validator.login, AuthController.login);
 
 /**
  * @swagger
@@ -184,7 +185,7 @@ router.post('/logout', authentication, AuthController.logout);
  *       404:
  *         description: Email không tồn tại
  */
-router.post('/request-reset', AuthController.requestPasswordReset);
+router.post('/request-reset', validator.email, AuthController.requestPasswordReset);
 
 /**
  * @swagger
@@ -213,6 +214,6 @@ router.post('/request-reset', AuthController.requestPasswordReset);
  *       400:
  *         description: Token không hợp lệ hoặc đã hết hạn
  */
-router.post('/reset-password', AuthController.resetPassword);
+router.post('/reset-password', validator.resetPassword, AuthController.resetPassword);
 
 module.exports = router;

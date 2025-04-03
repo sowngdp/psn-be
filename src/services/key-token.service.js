@@ -120,6 +120,44 @@ class KeyTokenService {
         // Làm mới khóa sau 30 ngày
         return daysSinceLastRotation > 30;
     }
+    
+    static async createOrUpdateKeyToken({ userId, refreshToken }) {
+        try {
+            // Generate new key pair
+            const publicKey = crypto.randomBytes(64).toString('hex');
+            const privateKey = crypto.randomBytes(64).toString('hex');
+            
+            // Check if a key token already exists
+            const keyToken = await keyTokenModel.findOne({ user: userId });
+            
+            if (keyToken) {
+                // Update existing token
+                keyToken.publicKey = publicKey;
+                keyToken.privateKey = privateKey;
+                keyToken.refreshToken = refreshToken;
+                keyToken.lastRotated = new Date();
+                await keyToken.save();
+            } else {
+                // Create new token
+                await keyTokenModel.create({
+                    user: userId,
+                    publicKey,
+                    privateKey,
+                    refreshToken,
+                    refreshTokensUsed: [],
+                    lastRotated: new Date()
+                });
+            }
+            
+            return {
+                publicKey,
+                privateKey
+            };
+        } catch (error) {
+            console.error('Error in createOrUpdateKeyToken:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = KeyTokenService;

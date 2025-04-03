@@ -378,7 +378,7 @@ class RecommendationService {
     const { userId } = recommendation;
     
     // Lấy thông tin profile để đề xuất phù hợp
-    const userProfile = await userStyleProfileModel.findOne({ userId });
+    // const userProfile = await userStyleProfileModel.findOne({ userId });
     
     // Lấy các outfit chưa mặc trong 7 ngày gần đây
     const oneWeekAgo = new Date();

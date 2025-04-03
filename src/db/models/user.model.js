@@ -38,6 +38,21 @@ const userSchema = new Schema({
   },
   passwordResetToken: String,
   passwordResetExpires: Date,
+  passwordResetAttempts: {
+    type: Number,
+    default: 0
+  },
+  passwordResetLastAttempt: Date,
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  accountLocked: {
+    type: Boolean,
+    default: false
+  },
+  accountLockedUntil: Date,
+  lastLogin: Date,
   createdAt: {
     type: Date,
     default: Date.now
@@ -53,7 +68,15 @@ const userSchema = new Schema({
 
 // Phương thức so sánh mật khẩu
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+  try {
+    console.log('Comparing passwords');
+    const isMatch = await bcrypt.compare(candidatePassword, this.password);
+    console.log('Password match result:', isMatch);
+    return isMatch;
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 };
 
 // Middleware hash mật khẩu trước khi lưu

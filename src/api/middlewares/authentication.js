@@ -1,231 +1,143 @@
 'use strict';
 const JWT = require('jsonwebtoken');
-const { AuthFailureError, NotFoundError } = require('../../core/error.response');
-const KeyTokenService = require('../../services/key-token.service');
-const { ReasonPhrases } = require('../../utils/httpStatusCode');
+const { AuthFailureError, NotFoundError, ForbiddenError } = require('../../core/error.response');
+const TokenService = require('../../services/token.service');
 const crypto = require('crypto');
-const userModel = require('../../db/models/user.model');
+const { config: jwtConfig } = require('../../configs/jwt');
 
 const HEADER = {
-    API_KEY: 'x-api-key',
-    CLIENT_ID: 'x-client-id',
-    AUTHORIZATION: 'authorization',
-    REFESHTOKEN: 'x-rtoken-id'
+  AUTHORIZATION: 'authorization',
+  CLIENT_ID: 'x-client-id'
 }
 
-const createTokenPair = async (payload, publicKey, privateKey) => {
-    try {
-        // Tạo accessToken với publicKey
-        const accessToken = await JWT.sign(payload, privateKey, {
-            expiresIn: '2 days',
-            algorithm: 'RS256' // Sử dụng thuật toán bất đối xứng
-        });
-
-        // Tạo refreshToken với privateKey
-        const refreshToken = await JWT.sign(payload, privateKey, {
-            expiresIn: '7 days',
-            algorithm: 'RS256'
-        });
-
-        // Xác minh token với publicKey
-        JWT.verify(accessToken, publicKey, (err, decode) => {
-            if(err){
-                console.error(`error verify:`, err);
-            } else {
-                console.log(`decode verify:`, decode);
-            }
-        });
-        
-        return { accessToken, refreshToken };
-    } catch (err) {
-        console.error('Lỗi tạo token:', err);
-        throw new Error('Không thể tạo token');
-    }
-};
-
 /**
- * Middleware kiểm tra API Key
+ * Tạo cặp token mới
+ * @param {Object} payload - Dữ liệu payload
+ * @returns {Object} - Cặp token mới
  */
-const checkApiKey = async (req, res, next) => {
+const createTokenPair = async (payload) => {
   try {
-    const apiKey = req.headers[HEADER.API_KEY]?.toString();
+    // Sử dụng khóa từ cấu hình
+    if (!jwtConfig.keys.private || !jwtConfig.keys.public) {
+      throw new Error('JWT keys not initialized');
+    }
     
-    if (!apiKey) {
-      return res.status(403).json({
-        status: 403,
-        message: "Forbidden",
-        statusText: "API Key is required",
-      });
-    }
-
-    // Check if the API key is valid
-    const objectKey = await apiKeyService.findByID(apiKey);
-    if (!objectKey) {
-      return res.status(403).json({
-        status: 403,
-        message: "Forbidden",
-        statusText: "API Key is invalid",
-      });
-    }
-
-    req.objectKey = objectKey;
-    return next();
-
-  } catch (error) {
-    console.error("Error in checkAuth:", error);
-    return res.status(403).json({
-      status: 403,
-      message: "Forbidden",
+    const accessToken = JWT.sign(payload, jwtConfig.keys.private, {
+      expiresIn: jwtConfig.access.expiration,
+      algorithm: jwtConfig.access.algorithm
     });
+
+    const refreshToken = JWT.sign(payload, jwtConfig.keys.private, {
+      expiresIn: jwtConfig.refresh.expiration,
+      algorithm: jwtConfig.refresh.algorithm
+    });
+    
+    return { accessToken, refreshToken };
+  } catch (err) {
+    console.error('Lỗi tạo token:', err);
+    throw new Error('Không thể tạo token');
   }
 };
 
 /**
- * Middleware xác thực quyền truy cập
+ * Middleware xử lý async
  */
-const verifyPermission = (permission) => {
-  return (req, res, next) => {
-    if (!req.objectKey || !req.objectKey.permissions) {
-      return res.status(403).json({
-        status: 403,
-        message: "Permission denied",
-      });
-    }
-
-    const { permissions } = req.objectKey;
-    if (!permissions.includes(permission) && !permissions.includes('0000')) {
-      return res.status(403).json({
-        status: 403,
-        message: "Permission denied",
-      });
-    }
-
-    return next();
-  };
-};
-
 const asyncHandler = fn => {
-    return (req, res, next) => {
-        fn(req, res, next).catch(next);
-    }
+  return (req, res, next) => {
+    fn(req, res, next).catch(next);
+  }
 }
 
 /**
  * Middleware xác thực chính
  */
 const authentication = async (req, res, next) => {
-    try {
-        // Lấy userId từ header
-        const userId = req.headers[HEADER.CLIENT_ID];
-        if (!userId) throw new AuthFailureError('Invalid Request');
-
-        // Lấy keyStore từ database
-        const keyStore = await KeyTokenService.findByUserId(userId);
-        if (!keyStore) throw new NotFoundError('Không tìm thấy key');
-
-        // Lấy accessToken từ header
-        const accessToken = req.headers[HEADER.AUTHORIZATION];
-        if (!accessToken) throw new AuthFailureError('Invalid Request');
-
-        // Xác minh token bằng publicKey từ database
-        try {
-            const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
-            
-            // Kiểm tra userId
-            if (userId !== decodeUser.userId) {
-                throw new AuthFailureError('Invalid UserId');
-            }
-            
-            // Lưu thông tin vào request
-            req.keyStore = keyStore;
-            req.user = decodeUser;
-            
-            return next();
-        } catch (error) {
-            if (error instanceof JWT.TokenExpiredError) {
-                throw new AuthFailureError('Token đã hết hạn');
-            }
-            throw new AuthFailureError('Token không hợp lệ');
-        }
-    } catch (error) {
-        next(error);
+  try {
+    // Lấy token từ header
+    const authHeader = req.headers[HEADER.AUTHORIZATION];
+    if (!authHeader) {
+      throw new AuthFailureError('Không tìm thấy token xác thực');
     }
+    
+    // Trích xuất token - hỗ trợ cả hai định dạng:
+    // 1. Authorization: Bearer <token>
+    // 2. authorization: <token>
+    let token = authHeader;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    }
+    
+    try {
+      // Xác thực token sử dụng public key
+      if (!jwtConfig.keys.public) {
+        throw new Error('JWT public key not initialized');
+      }
+      
+      const decoded = JWT.verify(token, jwtConfig.keys.public, {
+        algorithms: [jwtConfig.access.algorithm]
+      });
+      
+      // Thêm thông tin người dùng vào request
+      req.user = {
+        userId: decoded.userId,
+        email: decoded.email,
+        roles: decoded.roles
+      };
+      
+      next();
+    } catch (error) {
+      console.error('Lỗi xác thực token:', error);
+      if (error instanceof JWT.TokenExpiredError) {
+        throw new AuthFailureError('Token đã hết hạn');
+      } else if (error instanceof JWT.JsonWebTokenError) {
+        throw new AuthFailureError('Token không hợp lệ');
+      } else {
+        throw new AuthFailureError('Xác thực token thất bại: ' + error.message);
+      }
+    }
+  } catch (error) {
+    next(error);
+  }
 };
-
-const authenticationV2 = async (req, res, next) => {
-    const userId = req.headers[HEADER.CLIENT_ID];
-    if (!userId) throw new AuthFailureError('Invalid Request');
-    const keyStore = await KeyTokenService.findByUserId(userId);
-    if (!keyStore) throw new NotFoundError('Invalid Request');
-    const accessToken = req.headers[HEADER.AUTHORIZATION];
-    if(!accessToken) throw new AuthFailureError('Invalid Request');
-    console.log('accessToken::::::::::::::', accessToken);
-    console.log('keyStore.publicKey::::::::::::::', keyStore.publicKey);
-    const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
-    if(userId !== decodeUser.userId) throw new AuthFailureError('Invalid UserId');
-    req.keyStore = keyStore;
-    req.user = decodeUser;
-    return next();
-}
 
 /**
- * Middleware xác thực cải tiến
+ * Middleware phân quyền
+ * @param {Array} roles - Danh sách các roles được phép
  */
-const authenticationV3 = async (req, res, next) => {
-    try {
-        // Lấy token từ header
-        const authHeader = req.headers[HEADER.AUTHORIZATION];
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            throw new AuthFailureError('Token không đúng định dạng');
-        }
-        
-        const accessToken = authHeader.split(' ')[1];
-        
-        // Lấy client ID
-        const userId = req.headers[HEADER.CLIENT_ID];
-        if (!userId) throw new AuthFailureError('Client ID không tồn tại');
-        
-        // Tìm key store
-        const keyStore = await KeyTokenService.findByUserId(userId);
-        if (!keyStore) throw new NotFoundError('Không tìm thấy key store');
-        
-        try {
-            // Verify token
-            const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
-            
-            // Kiểm tra user ID trong token
-            if (userId !== decodeUser.userId) {
-                throw new AuthFailureError('User ID không khớp');
-            }
-            
-            // Thêm thông tin vào request
-            req.keyStore = keyStore;
-            req.user = decodeUser;
-            
-            return next();
-        } catch (error) {
-            if (error instanceof JWT.TokenExpiredError) {
-                throw new AuthFailureError('Token đã hết hạn');
-            }
-            throw new AuthFailureError('Token không hợp lệ');
-        }
-    } catch (error) {
-        next(error);
+const checkRole = (roles) => {
+  return (req, res, next) => {
+    // Authentication phải chạy trước để đặt req.user
+    if (!req.user) {
+      throw new AuthFailureError('Người dùng chưa xác thực');
     }
+    
+    // Lấy roles của người dùng từ payload token
+    const userRoles = req.user.roles || [];
+    
+    // Kiểm tra xem người dùng có role cần thiết không
+    const hasRole = userRoles.some(role => roles.includes(role));
+    
+    if (!hasRole) {
+      throw new ForbiddenError('Truy cập bị từ chối: không đủ quyền');
+    }
+    
+    next();
+  };
 };
 
+/**
+ * Xác minh token
+ */
 const verifyJWT = async (token, keySecret) => {
-    const decodeUser = await JWT.verify(token, keySecret);
-    return decodeUser;
+  return JWT.verify(token, jwtConfig.keys.public, {
+    algorithms: [jwtConfig.access.algorithm]
+  });
 }
 
 module.exports = {
-    createTokenPair,
-    checkApiKey,
-    verifyPermission,
-    asyncHandler,
-    authentication,
-    verifyJWT,
-    authenticationV2,
-    authenticationV3
+  createTokenPair,
+  asyncHandler,
+  authentication,
+  verifyJWT,
+  checkRole
 }

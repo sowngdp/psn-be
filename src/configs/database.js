@@ -26,8 +26,28 @@ class Database {
     mongoose.connect(connectString, {
       maxPoolSize: 50
     })
-    .then(() => console.log(`Kết nối MongoDB thành công!`))
-    .catch(err => console.error(`Lỗi kết nối MongoDB:`, err));
+    .then(() => console.log(`MongoDB connection successful!`))
+    .catch(err => console.error(`MongoDB connection error:`, err));
+    
+    // Xử lý các sự kiện của kết nối
+    mongoose.connection.on('connected', () => {
+      console.log('MongoDB connected');
+    });
+    
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.warn('MongoDB disconnected');
+    });
+    
+    // Xử lý khi ứng dụng đóng
+    process.on('SIGINT', async () => {
+      await mongoose.connection.close();
+      console.log('MongoDB connection closed due to app termination');
+      process.exit(0);
+    });
   }
 
   static getInstance() {
@@ -39,4 +59,4 @@ class Database {
 }
 
 const instanceMongodb = Database.getInstance();
-module.exports = instanceMongodb;
+module.exports = instanceMongodb; 
