@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * Enum for HTTP status reason phrases
+ * @readonly
+ * @enum {string}
+ */
 const ReasonPhrases = {
   CONTINUE: 'Continue',
   SWITCHING_PROTOCOLS: 'Switching Protocols',
@@ -65,6 +70,11 @@ const ReasonPhrases = {
   NETWORK_AUTHENTICATION_REQUIRED: 'Network Authentication Required'
 };
 
+/**
+ * Enum for HTTP status codes
+ * @readonly
+ * @enum {number}
+ */
 const StatusCodes = {
   CONTINUE: 100,
   SWITCHING_PROTOCOLS: 101,
@@ -130,7 +140,41 @@ const StatusCodes = {
   NETWORK_AUTHENTICATION_REQUIRED: 511
 };
 
+/**
+ * Categorize StatusCodes by their first digit
+ * @readonly
+ * @enum {Object}
+ */
+const StatusCodeCategories = {
+  INFORMATIONAL: {
+    min: 100,
+    max: 199,
+    description: 'Informational responses'
+  },
+  SUCCESS: {
+    min: 200,
+    max: 299,
+    description: 'Successful responses'
+  },
+  REDIRECTION: {
+    min: 300,
+    max: 399,
+    description: 'Redirection messages'
+  },
+  CLIENT_ERROR: {
+    min: 400,
+    max: 499,
+    description: 'Client error responses'
+  },
+  SERVER_ERROR: {
+    min: 500,
+    max: 599,
+    description: 'Server error responses'
+  }
+};
+
 module.exports = {
   ReasonPhrases,
-  StatusCodes
+  StatusCodes,
+  StatusCodeCategories
 };

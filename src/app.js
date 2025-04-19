@@ -28,13 +28,12 @@ app.use(cors());
 app.use(helmet());
 app.use(compression());
 
-// Thiết lập thư mục tĩnh
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Tạo thư mục uploads nếu chưa tồn tại
-const fs = require('fs');
-if (!fs.existsSync('./uploads')) {
-  fs.mkdirSync('./uploads', { recursive: true });
+// Initialize Firebase - Client SDK
+try {
+  require('./services/firebase.service');
+  console.log('Firebase Client SDK initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase Client SDK:', error);
 }
 
 // Khởi tạo JWT config trước khi khởi động server

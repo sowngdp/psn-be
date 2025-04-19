@@ -1,45 +1,44 @@
 'use strict';
 
+const { getBucket } = require('../configs/firebase');
+const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const storageConfig = require('../configs/storage');
+const os = require('os');
+const { promisify } = require('util');
 const logger = require('../utils/logger');
 const { BadRequestError } = require('../core/error.response');
 
+// Promisify fs functions
+const writeFileAsync = promisify(fs.writeFile);
+const unlinkAsync = promisify(fs.unlink);
+
 class StorageService {
   constructor() {
-    this.storageType = storageConfig.default;
-    
-    // Tạm thời sử dụng lưu trữ local
-    this.localStoragePath = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(this.localStoragePath)) {
-      fs.mkdirSync(this.localStoragePath, { recursive: true });
-    }
-    
-    // Thông báo khi khởi tạo
-    logger.info(`Storage service initialized with type: ${this.storageType} (fallback to local if dependencies missing)`);
+    // Log initialization
+    logger.info('Storage service initialized with Firebase Storage');
   }
   
   /**
-   * Tải file lên cloud storage hoặc local
+   * Upload file to Firebase Storage
    */
   async uploadFile(file, folder = 'uploads') {
     try {
-      if (!file) throw new BadRequestError('Không tìm thấy file');
+      if (!file) throw new BadRequestError('No file uploaded');
       
-      // Kiểm tra định dạng file
-      if (storageConfig.common.allowedMimetypes.length > 0 && 
-          !storageConfig.common.allowedMimetypes.includes(file.mimetype)) {
-        throw new BadRequestError('Định dạng file không được hỗ trợ');
+      if (file.buffer) {
+        const contentType = file.mimetype || 'application/octet-stream';
+        const extension = path.extname(file.originalname || '').substring(1) || 'dat';
+        
+        // Use the static method for Firebase storage
+        return await StorageService.uploadBuffer(file.buffer, {
+          fileExtension: extension,
+          contentType,
+          folder
+        });
+      } else {
+        throw new BadRequestError('Unsupported file format');
       }
-      
-      // Kiểm tra kích thước file
-      if (storageConfig.common.maxFileSize && file.size > storageConfig.common.maxFileSize) {
-        throw new BadRequestError(`Kích thước file không được vượt quá ${storageConfig.common.maxFileSize / (1024 * 1024)}MB`);
-      }
-      
-      // Fallback to local storage
-      return await this._uploadToLocal(file, folder);
     } catch (error) {
       logger.error('Upload file error:', error);
       throw error;
@@ -47,66 +46,11 @@ class StorageService {
   }
   
   /**
-   * Lưu file vào local storage
-   * @private
-   */
-  async _uploadToLocal(file, folder) {
-    try {
-      const fileName = `${Date.now()}-${path.basename(file.originalname || 'file')}`;
-      const filePath = path.join(this.localStoragePath, folder);
-      
-      // Tạo thư mục nếu chưa tồn tại
-      if (!fs.existsSync(filePath)) {
-        fs.mkdirSync(filePath, { recursive: true });
-      }
-      
-      const fullPath = path.join(filePath, fileName);
-      
-      // Nếu file đã ở dạng Buffer
-      if (file.buffer) {
-        fs.writeFileSync(fullPath, file.buffer);
-      } 
-      // Nếu file có path
-      else if (file.path) {
-        fs.copyFileSync(file.path, fullPath);
-      }
-      // Nếu file là stream
-      else if (file.stream) {
-        const writeStream = fs.createWriteStream(fullPath);
-        file.stream.pipe(writeStream);
-        await new Promise((resolve, reject) => {
-          writeStream.on('finish', resolve);
-          writeStream.on('error', reject);
-        });
-      } else {
-        throw new Error('Unsupported file format');
-      }
-      
-      // Trả về đường dẫn truy cập
-      return `/uploads/${folder}/${fileName}`;
-    } catch (error) {
-      logger.error('Error saving file locally:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Xóa file
+   * Delete file from Firebase Storage
    */
   async deleteFile(fileUrl) {
     try {
-      // Xử lý xóa file local
-      if (fileUrl.startsWith('/uploads/')) {
-        const relativePath = fileUrl.slice('/uploads/'.length);
-        const fullPath = path.join(this.localStoragePath, relativePath);
-        
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-          return true;
-        }
-      }
-      
-      return false;
+      return await StorageService.deleteFile(fileUrl);
     } catch (error) {
       logger.error('Delete file error:', error);
       return false;
@@ -114,8 +58,74 @@ class StorageService {
   }
 }
 
-// Singleton pattern
-const instance = new StorageService();
-Object.freeze(instance);
+// Static methods for Firebase storage
+StorageService.uploadBuffer = async function(buffer, { fileExtension = 'jpg', contentType = 'image/jpeg', folder = 'items' }) {
+  try {
+    const bucket = getBucket();
+    
+    // Create a unique filename
+    const filename = `${uuidv4()}.${fileExtension}`;
+    
+    // Define the storage path
+    const storagePath = folder ? `${folder}/${filename}` : filename;
+    
+    // Create a temporary file
+    const tempFilePath = path.join(os.tmpdir(), filename);
+    await writeFileAsync(tempFilePath, buffer);
+    
+    // Upload the file to Firebase Storage
+    const [file] = await bucket.upload(tempFilePath, {
+      destination: storagePath,
+      metadata: {
+        contentType: contentType,
+        metadata: {
+          firebaseStorageDownloadTokens: uuidv4(),
+        }
+      }
+    });
+    
+    // Delete the temporary file
+    await unlinkAsync(tempFilePath);
+    
+    // Make the file publicly accessible
+    await file.makePublic();
+    
+    // Get the public URL
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+    
+    return publicUrl;
+  } catch (error) {
+    logger.error('Error uploading file to Firebase Storage:', error);
+    throw error;
+  }
+};
 
-module.exports = instance; 
+StorageService.deleteFile = async function(fileUrl) {
+  try {
+    const bucket = getBucket();
+    
+    // Extract the file path from the URL
+    // Format: https://storage.googleapis.com/BUCKET_NAME/PATH_TO_FILE
+    const urlObj = new URL(fileUrl);
+    const pathWithBucket = urlObj.pathname.substring(1); // Remove leading slash
+    const pathParts = pathWithBucket.split('/');
+    pathParts.shift(); // Remove bucket name
+    const filePath = pathParts.join('/');
+    
+    // Delete the file
+    await bucket.file(filePath).delete();
+    
+    return true;
+  } catch (error) {
+    logger.error('Error deleting file from Firebase Storage:', error);
+    return false;
+  }
+};
+
+// Create a singleton instance
+const storageService = new StorageService();
+
+// Export both the instance and the class
+module.exports = storageService;
+module.exports.uploadBuffer = StorageService.uploadBuffer;
+module.exports.deleteFile = StorageService.deleteFile; 

@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { 
   db: { host, port, name, username, password }
 } = require('./config.mongodb');
+const logger = require('../utils/logger');
 
 // Xác định URI kết nối
 const connectString = username && password
@@ -26,7 +27,12 @@ class Database {
     mongoose.connect(connectString, {
       maxPoolSize: 50
     })
-    .then(() => console.log(`MongoDB connection successful!`))
+    .then(() => {
+      console.log(`MongoDB connection successful!`);
+      this.createIndexes().catch(err => {
+        logger.error('Error creating indexes', err);
+      });
+    })
     .catch(err => console.error(`MongoDB connection error:`, err));
     
     // Xử lý các sự kiện của kết nối
@@ -48,6 +54,29 @@ class Database {
       console.log('MongoDB connection closed due to app termination');
       process.exit(0);
     });
+  }
+
+  // Tạo các indexes cho các collections
+  async createIndexes() {
+    try {
+      // Import các repositories
+      const { ItemRepository, OutfitRepository } = require('../db/repositories');
+      
+      // Khởi tạo repositories
+      const itemRepo = new ItemRepository();
+      const outfitRepo = new OutfitRepository();
+      
+      // Tạo indexes
+      await itemRepo.createIndexes();
+      if (typeof outfitRepo.createIndexes === 'function') {
+        await outfitRepo.createIndexes();
+      }
+      
+      logger.info('Database indexes created successfully');
+    } catch (error) {
+      logger.error('Failed to create database indexes', error);
+      throw error;
+    }
   }
 
   static getInstance() {

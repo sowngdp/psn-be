@@ -36,6 +36,51 @@ const userSchema = new Schema({
     type: Boolean,
     default: false
   },
+  preferences: {
+    favoriteColors: [String],
+    favoriteStyles: [String],
+    favoriteCategories: [String],
+    dislikedColors: [String],
+    dislikedPatterns: [String],
+    dislikedMaterials: [String],
+    seasonPreference: {
+      type: String,
+      enum: ['spring', 'summer', 'fall', 'winter', 'all'],
+      default: 'all'
+    },
+    weatherPreferences: {
+      preferLayeredOutfits: {
+        type: Boolean, 
+        default: false
+      },
+      preferWarmOutfits: {
+        type: Boolean,
+        default: false
+      },
+      preferBreathableOutfits: {
+        type: Boolean,
+        default: false
+      }
+    },
+    occasionPreferences: {
+      type: Map,
+      of: {
+        priority: {
+          type: Number,
+          min: 1,
+          max: 5,
+          default: 3
+        },
+        preferredStyles: [String]
+      },
+      default: new Map()
+    },
+    clothingFit: {
+      type: String,
+      enum: ['loose', 'regular', 'tight', 'any'],
+      default: 'any'
+    }
+  },
   passwordResetToken: String,
   passwordResetExpires: Date,
   passwordResetAttempts: {
@@ -77,6 +122,53 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
     console.error('Error comparing passwords:', error);
     return false;
   }
+};
+
+// Phương thức cập nhật preferences
+userSchema.methods.updatePreferences = async function(preferencesData) {
+  // Cập nhật các mảng
+  if (preferencesData.favoriteColors) this.preferences.favoriteColors = preferencesData.favoriteColors;
+  if (preferencesData.favoriteStyles) this.preferences.favoriteStyles = preferencesData.favoriteStyles;
+  if (preferencesData.favoriteCategories) this.preferences.favoriteCategories = preferencesData.favoriteCategories;
+  if (preferencesData.dislikedColors) this.preferences.dislikedColors = preferencesData.dislikedColors;
+  if (preferencesData.dislikedPatterns) this.preferences.dislikedPatterns = preferencesData.dislikedPatterns;
+  if (preferencesData.dislikedMaterials) this.preferences.dislikedMaterials = preferencesData.dislikedMaterials;
+  
+  // Cập nhật các giá trị đơn lẻ
+  if (preferencesData.seasonPreference) this.preferences.seasonPreference = preferencesData.seasonPreference;
+  if (preferencesData.clothingFit) this.preferences.clothingFit = preferencesData.clothingFit;
+  
+  // Cập nhật weatherPreferences nếu có
+  if (preferencesData.weatherPreferences) {
+    this.preferences.weatherPreferences = {
+      ...this.preferences.weatherPreferences,
+      ...preferencesData.weatherPreferences
+    };
+  }
+  
+  // Cập nhật occasionPreferences nếu có
+  if (preferencesData.occasionPreferences) {
+    // Chuyển đổi từ object sang Map nếu cần
+    const occasionPrefs = preferencesData.occasionPreferences;
+    for (const [occasion, prefs] of Object.entries(occasionPrefs)) {
+      this.preferences.occasionPreferences.set(occasion, prefs);
+    }
+  }
+  
+  return this.save();
+};
+
+// Phương thức lấy recommendations dựa trên preferences
+userSchema.methods.getPreferenceBasedRecommendations = function() {
+  const { favoriteColors, favoriteStyles, seasonPreference } = this.preferences;
+  
+  const recommendationCriteria = {
+    colors: favoriteColors || [],
+    styles: favoriteStyles || [],
+    season: seasonPreference || 'all'
+  };
+  
+  return recommendationCriteria;
 };
 
 // Middleware hash mật khẩu trước khi lưu

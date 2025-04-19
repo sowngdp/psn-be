@@ -1,7 +1,7 @@
 "use strict";
 
 const firebaseConfig = require("../configs/config.firebase");
-const { initializeApp } = require("firebase/app");
+const { initializeApp, getApps, getApp } = require("firebase/app");
 const {
   getStorage,
   ref,
@@ -12,7 +12,9 @@ const {
 const { v4: uuidv4 } = require("uuid");
 
 console.log(firebaseConfig);
-const firebaseApp = initializeApp(firebaseConfig);
+
+// Check if Firebase app already exists, otherwise initialize a new one
+const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const storage = getStorage(firebaseApp);
 
 class FirebaseStorage {
@@ -58,16 +60,26 @@ class FirebaseStorage {
   }
 
   async deleteImage(url) {
-    const storageRef = ref(this.storage, url);
-    console.log("Deleting file:", url);
-    await deleteObject(storageRef);
-    console.log("File deleted successfully");
+    try {
+      // Extract the storage path from the URL
+      const storageRef = ref(this.storage, this.getStoragePathFromUrl(url));
+      console.log("Deleting file:", url);
+      await deleteObject(storageRef);
+      console.log("File deleted successfully");
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      throw error;
+    }
   }
 
   async updateImage(url, file) {
     try {
       if (url) {
-        await this.deleteImage(url);
+        try {
+          await this.deleteImage(url);
+        } catch (error) {
+          console.error("Error deleting previous image, continuing with upload:", error);
+        }
       }
       const newUrl = await this.uploadImage(file);
       return newUrl;
@@ -80,8 +92,12 @@ class FirebaseStorage {
   async updateImages(urls, files) {
     const newUrls = [];
     for (const url of urls) {
-      await this.deleteImage(url);
-      console.log("Deleted image:", url);
+      try {
+        await this.deleteImage(url);
+        console.log("Deleted image:", url);
+      } catch (error) {
+        console.error(`Error deleting image ${url}:`, error);
+      }
     }
     for (const file of files) {
       const newUrl = await this.uploadImage(file);
@@ -90,6 +106,34 @@ class FirebaseStorage {
       }
     }
     return newUrls;
+  }
+  
+  // Helper method to extract the storage path from URL
+  getStoragePathFromUrl(url) {
+    try {
+      // Extract the path after storage.googleapis.com/
+      const match = url.match(/storage\.googleapis\.com\/(.+?)(\?|$)/);
+      if (match && match[1]) {
+        // URL decode the path
+        return decodeURIComponent(match[1]);
+      }
+      
+      // For Firebase Storage URLs
+      if (url.includes('firebasestorage.googleapis.com')) {
+        // These URLs are more complex, extract the path component
+        // Format: https://firebasestorage.googleapis.com/v0/b/bucket-name.appspot.com/o/path%2Fto%2Ffile?token...
+        const match = url.match(/\/o\/(.+?)(\?|$)/);
+        if (match && match[1]) {
+          return decodeURIComponent(match[1]);
+        }
+      }
+      
+      // If we can't parse the URL properly, throw an error
+      throw new Error(`Unable to extract storage path from URL: ${url}`);
+    } catch (error) {
+      console.error("Error extracting storage path:", error);
+      throw error;
+    }
   }
 }
 

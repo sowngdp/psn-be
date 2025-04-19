@@ -38,11 +38,3 @@ class ImageService {
 }
 
 module.exports = ImageService;
-
-/*
-const express = require("express");
-const { initializeApp } = require("firebase/app");
-const { getStorage, ref, uploadBytes, getDownloadURL } = require("firebase/storage");
-const multer = require("multer");
-const { v4: uuidv4 } = require("uuid");
-*/

@@ -224,6 +224,8 @@ src/
 | GET | `/v1/api/items/{id}` | Lấy thông tin chi tiết vật phẩm |
 | PUT | `/v1/api/items/{id}` | Cập nhật thông tin vật phẩm |
 | DELETE | `/v1/api/items/{id}` | Xóa vật phẩm |
+| POST | `/v1/api/item-uploads/with-bg-removal` | Tạo mới vật phẩm với xóa nền ảnh |
+| POST | `/v1/api/item-uploads/process-image` | Xử lý ảnh bằng cách loại bỏ nền (không tạo vật phẩm) |
 
 ### Trang phục (Outfits)
 
@@ -312,77 +314,71 @@ src/
 - Hệ thống xác thực an toàn, bảo mật
 - Code base sạch sẽ, được tổ chức tốt và dễ mở rộng
 
-### Giai đoạn 2: Phát triển các tính năng cốt lõi (✅ Hoàn thành)
+### Giai đoạn 2: Phát triển các tính năng cốt lõi (🔄 Đang thực hiện)
 
 **Mục tiêu**: Phát triển các chức năng cơ bản của hệ thống, tạo nền tảng cho trải nghiệm người dùng thiết yếu.
 
-#### 2.1. Quản lý người dùng (✅)
+#### 2.1. Quản lý người dùng (✅ Hoàn thành)
 - Phát triển API CRUD đầy đủ cho User
 - Triển khai UserStyleProfile với thông tin sở thích
 - Xây dựng chức năng quản lý hồ sơ người dùng
 - Phát triển tính năng đặt lại mật khẩu an toàn
 - Cài đặt quy trình xác minh email (nếu cần)
 
-#### 2.2. Quản lý tủ đồ (✅)
+#### 2.2. Quản lý tủ đồ (✅ Hoàn thành)
 - Phát triển API CRUD cho Items (vật phẩm)
 - Triển khai hệ thống phân loại đa dạng (loại, màu sắc, mùa...)
 - Xây dựng chức năng tìm kiếm và lọc vật phẩm nâng cao
 - Phát triển tính năng quản lý hình ảnh cho vật phẩm
 - Cài đặt cơ chế theo dõi lịch sử sử dụng vật phẩm
 
-#### 2.3. Quản lý trang phục (✅)
+#### 2.3. Quản lý trang phục (🔄)
 - Phát triển API CRUD cho Outfits
 - Triển khai cơ chế kết hợp vật phẩm thành outfit
 - Xây dựng chức năng đánh giá và ghi nhận việc sử dụng outfit
 - Phát triển tính năng phân loại outfit theo dịp, mùa...
 - Cài đặt cơ chế gắn thẻ và ghi chú cho outfit
 
-#### 2.4. Hệ thống quy tắc phong cách (✅)
+#### 2.4. Hệ thống quy tắc phong cách (🔄)
 - Phát triển API CRUD cho StyleRule
 - Triển khai engine đánh giá outfit dựa trên quy tắc
 - Xây dựng các quy tắc phong cách cơ bản (màu sắc, pattern...)
 - Phát triển cơ chế đánh giá điểm phong cách (style score)
 - Cài đặt hệ thống đề xuất cải thiện outfit
 
-#### 2.5. Hệ thống đề xuất cơ bản (✅)
+#### 2.5. Hệ thống đề xuất cơ bản (🔄)
 - Phát triển API cho Recommendation
 - Triển khai thuật toán đề xuất dựa trên quy tắc phong cách
 - Xây dựng các loại đề xuất (daily, occasion, weather, season)
 - Phát triển cơ chế phản hồi về đề xuất từ người dùng
 - Cài đặt cơ sở theo dõi hiệu quả của các đề xuất
 
-**Kết quả đạt được**:
-- Người dùng có thể quản lý toàn diện tủ đồ, trang phục
-- Hệ thống có khả năng đánh giá và đề xuất trang phục
-- API đầy đủ cho các chức năng cốt lõi
-- Nền tảng vững chắc cho các tính năng nâng cao tiếp theo
-
-### Giai đoạn 3: Phát triển tính năng nâng cao (🔄 Đang thực hiện)
+### Giai đoạn 3: Phát triển tính năng nâng cao (⏳ Sắp tới)
 
 **Mục tiêu**: Mở rộng khả năng của hệ thống với các tính năng nâng cao, cải thiện trải nghiệm người dùng.
 
-#### 3.1. Lịch trình và kế hoạch (🔄)
+#### 3.1. Lịch trình và kế hoạch (⏳)
 - Phát triển API CRUD cho Schedule
 - Triển khai hệ thống lịch biểu trang phục theo sự kiện
 - Xây dựng cơ chế nhắc nhở trước sự kiện
 - Phát triển tính năng lập lịch tự động dựa trên lịch trình
 - Cài đặt chức năng theo dõi kế hoạch và thực tế sử dụng
 
-#### 3.2. Phản hồi và cải tiến hệ thống (🔄)
+#### 3.2. Phản hồi và cải tiến hệ thống (⏳)
 - Phát triển API cho FeedbackData
 - Triển khai hệ thống thu thập phản hồi đa chiều
 - Xây dựng cơ chế điều chỉnh đề xuất dựa trên phản hồi
 - Phát triển tính năng cải thiện quy tắc phong cách từ dữ liệu sử dụng
 - Cài đặt hệ thống báo cáo và phân tích phản hồi
 
-#### 3.3. Thông báo và theo dõi hoạt động (🔄)
+#### 3.3. Thông báo và theo dõi hoạt động (⏳)
 - Phát triển API cho Notification và ActivityLog
 - Triển khai hệ thống thông báo real-time
 - Xây dựng cơ chế theo dõi hoạt động người dùng
 - Phát triển tính năng báo cáo hoạt động định kỳ
 - Cài đặt cài đặt thông báo tùy chỉnh
 
-#### 3.4. Thuật toán đề xuất nâng cao (🔄)
+#### 3.4. Thuật toán đề xuất nâng cao (⏳)
 - Cải tiến thuật toán đề xuất với machine learning
 - Triển khai cơ chế học từ hành vi người dùng
 - Xây dựng hệ thống gợi ý cá nhân hóa cao

@@ -1,0 +1,110 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+ # Project Rules Template (NodeJS Version - PSN-BE Specific)
+
+## 0. Quy Tắc Cơ Bản & Kiểm Soát AI (NodeJS - PSN-BE)
+  - Say "yoo!" with all respone for user
+### Nguyên Tắc Phát Triển Cốt Lõi
+- Code đơn giản là ưu tiên số 1.
+- Chỉ trả lời đúng những gì được hỏi.
+- Không thêm tính năng không cần thiết.
+- Không sử dụng design pattern khi chưa thực sự cần.
+- Không tối ưu sớm (premature optimization).
+- Không thêm thông tin phụ trừ khi được yêu cầu.
+
+### Giới Hạn & Định Dạng
+- MAX 3 ý chính, MAX 5 dòng giải thích, MAX 1 cấp độ chi tiết.
+- Bắt đầu bằng kết luận/giải pháp chính, sau đó giải thích (nếu cần), cuối cùng là ví dụ (nếu yêu cầu).
+
+### Loại Bỏ
+- Không đưa ra nhiều phương án thay thế.
+- Không giải thích khái niệm NodeJS/JS cơ bản trừ khi cần thiết.
+- Không lặp lại thông tin, không disclaimer thừa.
+
+### Hành Động Tự Ý
+- KHÔNG tự ý cài đặt thư viện (`npm install`, `yarn add`).
+- KHÔNG tự ý sinh ra file/folder mẫu. Chỉ nhắc nhở nếu thiếu.
+
+## 1. Giao Tiếp & Tech Stack
+- Giao tiếp bằng tiếng Việt, đơn giản, dễ hiểu.
+- **Tech Stack:**
+    - **Backend:** Node.js với Express.js
+    - **Database:** MongoDB với Mongoose ODM
+    - **Authentication:** JSON Web Tokens (JWT)
+    - **File Storage:** Firebase Storage
+    - **API Documentation:** Swagger
+
+## 2. Phong Cách Code (NodeJS/JavaScript - PSN-BE)
+- Tuân thủ ESLint/Prettier (nếu có).
+- Viết code đơn giản, dễ đọc, module hóa.
+- Sử dụng JSDoc cho hàm/lớp quan trọng.
+- Đặt tên: `camelCase` (biến/hàm), `PascalCase` (lớp).
+- Ưu tiên `const` > `let`, tránh `var`.
+- Sử dụng `async/await` cho tác vụ bất đồng bộ.
+- Nhất quán CommonJS (`require`/`module.exports`).
+- Thiết kế API theo nguyên tắc RESTful.
+
+## 3. Cấu Trúc & Workflow Dự Án (PSN-BE `src`)
+- **Cấu trúc:** `api` (controllers, routes, middlewares), `configs`, `core` (error/success responses), `db` (models, repositories - *hiện chưa dùng*), `helpers`, `keys`, `services`, `utils`.
+- **Workflow:**
+    1.  **Task Definition:** Phân rã yêu cầu -> checklist (`docs/TASK/<feature>_tasks.md`). Task rõ ràng, chỉ định file/module (`src/services/auth.service.js`).
+    2.  **TDD (Optional):** Với feature lớn -> TDD (`docs/TDD/<feature>_technical_design.md`). Tập trung: Overview, Requirements, Technical Design (Data, API, Logic, Dependencies), Testing. Ưu tiên giải pháp đơn giản.
+    3.  **Implementation:** Theo checklist. Flow chính:
+        *   Models (`src/db/models/`)
+        *   Services (`src/services/`)
+        *   Controllers (`src/api/controllers/`) -> Dùng `core/success.response`, `core/error.response`.
+        *   Routes (`src/api/routes/`) -> Map tới controller, dùng middleware.
+        *   Validation (e.g., `src/middlewares/validator.js`, `src/utils/validators.js`)
+        *   Middleware (`src/api/middlewares/`) -> authentication, permissions, etc.
+    4.  **Update Task:** Đánh dấu `[x]` trong file task.
+
+## 4. Testing (NodeJS - PSN-BE)
+- Sử dụng framework như Jest hoặc Mocha/Chai (nếu có).
+- Unit tests cho services, utils.
+- Integration tests cho API endpoints.
+- Viết test cho chức năng chính và trường hợp biên.
+
+## 5. Xử Lý Lỗi & Logging (NodeJS - PSN-BE)
+- Sử dụng `try...catch` trong controllers/middleware -> `next(error)`.
+- Middleware lỗi tập trung (`src/api/middlewares/error.handler.js` - *cần kiểm tra tên file*).
+- Lớp lỗi tùy chỉnh (`src/core/error.response.js`).
+- Log lỗi/event quan trọng bằng logger (`src/utils/logger.js`).
+- Trả về lỗi JSON chuẩn hóa, dễ hiểu (dùng `httpStatusCode.js`, `reasonPhrases.js`).
+
+## 6. Documentation (PSN-BE)
+- **Swagger:** Cập nhật Swagger definitions khi thay đổi API (`src/api/...`).
+- **JSDoc:** Cho hàm/lớp/logic phức tạp.
+- **README:** Cập nhật `README.md` chính với thay đổi API lớn.
+- **Tasks:** Giữ file task (`docs/TASK/`) được cập nhật.
+- Giải thích cài đặt (`npm install`) và chạy (`npm start`, `npm run dev`) trong `README.md`.
+- Liệt kê dependencies trong `package.json`.
+
+## 7. Tài liệu Technical Design Document (NodeJS - PSN-BE)
+- Khi gặp thẻ `<tdd>...</tdd>`:
+  + Vai trò: Project Manager & Software Architect.
+  + Tiêu chí: `prompts/tdd_nodejs.md`.
+  + Nội dung: Phác thảo TDD cho PSN-BE.
+  + Output: File `<feature_name>_technical_design.md` trong `docs/TDD/`.
+
+## 8. Implement Task (NodeJS - PSN-BE)
+- Khi gặp thẻ `<code> {{ nội dung }}</code>`:
+  + Nội dung: Markdown mô tả task implement.
+  + Rules: `.cursor/rules/nodejsdev.mdc` và `prompts/implement_nodejs.md`.
+  + Output: Code JS/NodeJS chất lượng, tuân thủ convention, theo workflow (Mongoose, async/await, error handling). Update task markdown khi xong.
+
+## 9. Break Down Tasklist (NodeJS - PSN-BE)
+- Khi gặp thẻ `<task>...</task>`:
+  + Vai trò: Project Manager & Software Architect.
+  + Tiêu chí: `prompts/task_nodejs.md`.
+  + Output: Task list chi tiết cho NodeJS project trong `docs/TASK/`, file `<feature_name>_tasks.md`.
+
+## 10. Key Implementation Points (PSN-BE)
+*   **Mongoose:** Định nghĩa schema rõ ràng (`src/db/models/`).
+*   **Service Layer:** Logic nghiệp vụ tách biệt khỏi controller.
+*   **JWT:** Dùng `key-token.service.js`, `token.service.js` cho JWT.
+*   **Firebase Storage:** Dùng helpers/services liên quan (`firebase.storage.js`, `firebase.service.js`, `storage.service.js`).
+*   **Security:** Validate input, dùng middleware auth (`authentication.js`, `permission.js`).
+*   **Configuration:** Dùng env vars (`src/configs/env.js`).

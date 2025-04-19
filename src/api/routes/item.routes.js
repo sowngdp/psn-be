@@ -206,4 +206,20 @@ router.put('/:id', authentication, ItemController.updateItem);
  */
 router.delete('/:id', authentication, ItemController.deleteItem);
 
+/**
+ * @swagger
+ * /items/metadata/all:
+ *   get:
+ *     summary: Lấy tất cả metadata của items trong một lần gọi
+ *     tags: [Items]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Metadata cho items (categories, patterns, seasons, occasions, colors, materials)
+ *       500:
+ *         description: Server error
+ */
+router.get('/metadata/all', authentication, ItemController.getAllMetadata);
+
 module.exports = router; 

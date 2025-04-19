@@ -72,6 +72,11 @@ router.post('/', authentication, OutfitController.createOutfit);
  *           type: string
  *         description: Lọc theo dịp
  *       - in: query
+ *         name: styleType
+ *         schema:
+ *           type: string
+ *         description: Lọc theo kiểu phong cách
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
@@ -90,6 +95,117 @@ router.post('/', authentication, OutfitController.createOutfit);
  *         description: Không được ủy quyền
  */
 router.get('/', authentication, OutfitController.getUserOutfits);
+
+/**
+ * @swagger
+ * /outfits/recommendations:
+ *   get:
+ *     summary: Lấy gợi ý trang phục dựa trên các tiêu chí
+ *     tags: [Outfits]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: occasion
+ *         schema:
+ *           type: string
+ *         description: Dịp (ví dụ như formal, casual, workout)
+ *       - in: query
+ *         name: weather
+ *         schema:
+ *           type: string
+ *         description: Điều kiện thời tiết (ví dụ như rainy, sunny, cold)
+ *       - in: query
+ *         name: season
+ *         schema:
+ *           type: string
+ *         description: Mùa (spring, summer, fall, winter)
+ *       - in: query
+ *         name: color
+ *         schema:
+ *           type: string
+ *         description: Màu sắc chủ đạo
+ *       - in: query
+ *         name: styleType
+ *         schema:
+ *           type: string
+ *         description: Kiểu phong cách
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Số lượng gợi ý trả về
+ *     responses:
+ *       200:
+ *         description: Gợi ý trang phục
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.get('/recommendations', authentication, OutfitController.getOutfitRecommendations);
+
+/**
+ * @swagger
+ * /outfits/statistics:
+ *   get:
+ *     summary: Lấy thống kê về trang phục
+ *     tags: [Outfits]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [week, month, year, all]
+ *           default: month
+ *         description: Khoảng thời gian thống kê
+ *     responses:
+ *       200:
+ *         description: Thống kê trang phục
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.get('/statistics', authentication, OutfitController.getOutfitStatistics);
+
+/**
+ * @swagger
+ * /outfits/weather:
+ *   get:
+ *     summary: Lấy trang phục phù hợp với thời tiết
+ *     tags: [Outfits]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: temperature
+ *         schema:
+ *           type: number
+ *         description: Nhiệt độ hiện tại (độ C)
+ *       - in: query
+ *         name: weatherCondition
+ *         schema:
+ *           type: string
+ *         description: Điều kiện thời tiết (ví dụ như rainy, sunny, cloudy)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *         description: Số lượng trang phục trả về
+ *     responses:
+ *       200:
+ *         description: Trang phục phù hợp với thời tiết
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.get('/weather', authentication, OutfitController.getOutfitsForWeather);
 
 /**
  * @swagger
@@ -209,10 +325,10 @@ router.delete('/:id', authentication, OutfitController.deleteOutfit);
  *           schema:
  *             type: object
  *             properties:
- *               wornDate:
+ *               date:
  *                 type: string
  *                 format: date
- *               occasion:
+ *               event:
  *                 type: string
  *               notes:
  *                 type: string
