@@ -89,9 +89,26 @@ const validateResetPassword = (data) => {
   return schema.validate(data);
 };
 
+/**
+ * Xác thực Google ID token
+ * @param {Object} data - Dữ liệu chứa idToken
+ * @returns {Object} - Kết quả xác thực
+ */
+const validateGoogleIdToken = (data) => {
+  const schema = Joi.object({
+    idToken: Joi.string().required()
+      .messages({
+        'any.required': 'ID token là trường bắt buộc'
+      })
+  });
+
+  return schema.validate(data);
+};
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateEmail,
-  validateResetPassword
+  validateResetPassword,
+  validateGoogleIdToken
 }; 

@@ -717,98 +717,305 @@ if (pm.response.code === 200) {
   }
   ```
 
+### 3.7. Đăng Nhập bằng Google
+- **Endpoint**: `POST /auth/login/google`
+- **Mô tả**: Đăng nhập hoặc đăng ký mới bằng tài khoản Google
+
+#### Setup
+1. Trong folder "Authentication", tạo request mới
+2. Đặt tên: "Login with Google"
+3. Chọn phương thức: POST
+4. URL: `{{baseUrl}}/auth/login/google`
+5. Tab Headers: Thêm header `Content-Type: application/json`
+6. Tab Body: Chọn "raw" và "JSON", nhập:
+   ```json
+   {
+     "idToken": "{{googleIdToken}}"
+   }
+   ```
+
+#### Test Script
+Thêm script sau vào tab "Tests":
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has correct structure", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('statusCode', 200);
+    pm.expect(jsonData).to.have.property('message');
+    pm.expect(jsonData).to.have.property('metadata');
+    pm.expect(jsonData.metadata).to.have.property('user');
+    pm.expect(jsonData.metadata).to.have.property('tokens');
+    pm.expect(jsonData.metadata.tokens).to.have.property('accessToken');
+    pm.expect(jsonData.metadata.tokens).to.have.property('refreshToken');
+});
+
+// Lưu tokens vào biến môi trường
+const response = pm.response.json();
+if (response.metadata && response.metadata.tokens) {
+    pm.environment.set("token", response.metadata.tokens.accessToken);
+    pm.environment.set("refreshToken", response.metadata.tokens.refreshToken);
+    
+    // Lưu userId 
+    if (response.metadata.user && response.metadata.user._id) {
+        pm.environment.set("userId", response.metadata.user._id);
+    }
+}
+```
+
+#### Ví Dụ Hoàn Chỉnh
+- **Request Headers**:
+  ```
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjZmOTc3N2E2MGM..."
+  }
+  ```
+- **Response Success (200)**:
+  ```json
+  {
+    "statusCode": 200,
+    "message": "Đăng nhập Google thành công",
+    "metadata": {
+      "user": {
+        "_id": "65a1b2c3d4e5f6a7b8c9d0e1",
+        "email": "user@gmail.com",
+        "name": "User Name",
+        "avatar": "https://lh3.googleusercontent.com/a/...",
+        "googleId": "109774751081082395795",
+        "provider": "google"
+      },
+      "tokens": {
+        "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+      }
+    }
+  }
+  ```
+
+#### Các Trường Hợp Test
+1. **Happy Path**: ID token hợp lệ từ Google
+2. **Đăng ký mới**: Người dùng chưa tồn tại trong hệ thống
+3. **Đăng nhập**: Người dùng đã tồn tại (theo email hoặc googleId)
+4. **Token không hợp lệ**: ID token không hợp lệ hoặc hết hạn
+
+#### Possible Errors:
+- `401`: Token không hợp lệ
+  ```json
+  {
+    "statusCode": 401,
+    "message": "Google token không hợp lệ",
+    "errors": null
+  }
+  ```
+- `400`: Token không đúng định dạng
+  ```json
+  {
+    "statusCode": 400,
+    "message": "ID token là trường bắt buộc",
+    "errors": null
+  }
+  ```
+
+### 3.8. Liên kết tài khoản Google
+- **Endpoint**: `POST /users/link/google`
+- **Mô tả**: Liên kết tài khoản Google với tài khoản người dùng hiện tại
+
+#### Setup
+1. Trong folder "Authentication", tạo request mới
+2. Đặt tên: "Link Google Account"
+3. Chọn phương thức: POST
+4. URL: `{{baseUrl}}/users/link/google`
+5. Tab Headers: Thêm headers:
+   ```
+   Content-Type: application/json
+   Authorization: Bearer {{token}}
+   ```
+6. Tab Body: Chọn "raw" và "JSON", nhập:
+   ```json
+   {
+     "idToken": "{{googleIdToken}}"
+   }
+   ```
+
+#### Test Script
+Thêm script sau vào tab "Tests":
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has correct structure", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('statusCode', 200);
+    pm.expect(jsonData).to.have.property('message');
+    pm.expect(jsonData).to.have.property('metadata');
+    pm.expect(jsonData.metadata).to.have.property('googleId');
+});
+```
+
+#### Ví Dụ Hoàn Chỉnh
+- **Request Headers**:
+  ```
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  ```
+- **Request Body**:
+  ```json
+  {
+    "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjZmOTc3N2E2MGM..."
+  }
+  ```
+- **Response Success (200)**:
+  ```json
+  {
+    "statusCode": 200,
+    "message": "Liên kết tài khoản Google thành công",
+    "metadata": {
+      "_id": "65a1b2c3d4e5f6a7b8c9d0e1",
+      "email": "user@example.com",
+      "name": "Test User",
+      "googleId": "109774751081082395795",
+      "provider": "local",
+      "providerData": {
+        "google": {
+          "sub": "109774751081082395795",
+          "email": "user@gmail.com",
+          "name": "User Name",
+          "picture": "https://lh3.googleusercontent.com/a/..."
+        }
+      }
+    }
+  }
+  ```
+
+#### Các Trường Hợp Test
+1. **Happy Path**: Liên kết tài khoản Google mới
+2. **Đã liên kết**: Cố gắng liên kết tài khoản đã được liên kết
+3. **Email xung đột**: Google email khác với email tài khoản
+
+#### Possible Errors:
+- `401`: Chưa xác thực
+  ```json
+  {
+    "statusCode": 401,
+    "message": "Token không hợp lệ hoặc đã hết hạn",
+    "errors": null
+  }
+  ```
+- `409`: Đã liên kết
+  ```json
+  {
+    "statusCode": 409,
+    "message": "Tài khoản này đã được liên kết với Google",
+    "errors": null
+  }
+  ```
+- `409`: Xung đột
+  ```json
+  {
+    "statusCode": 409,
+    "message": "Tài khoản Google này đã được liên kết với tài khoản khác",
+    "errors": null
+  }
+  ```
+
+### 3.9. Hủy liên kết tài khoản Google
+- **Endpoint**: `DELETE /users/unlink/google`
+- **Mô tả**: Hủy liên kết tài khoản Google khỏi tài khoản người dùng hiện tại
+
+#### Setup
+1. Trong folder "Authentication", tạo request mới
+2. Đặt tên: "Unlink Google Account"
+3. Chọn phương thức: DELETE
+4. URL: `{{baseUrl}}/users/unlink/google`
+5. Tab Headers: Thêm header:
+   ```
+   Authorization: Bearer {{token}}
+   ```
+
+#### Test Script
+Thêm script sau vào tab "Tests":
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has correct structure", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('statusCode', 200);
+    pm.expect(jsonData).to.have.property('message');
+    pm.expect(jsonData).to.have.property('metadata');
+    pm.expect(jsonData.metadata).to.have.property('success', true);
+});
+```
+
+#### Ví Dụ Hoàn Chỉnh
+- **Request Headers**:
+  ```
+  Authorization: Bearer {{token}}
+  ```
+- **Response Success (200)**:
+  ```json
+  {
+    "statusCode": 200,
+    "message": "Đã hủy liên kết với google",
+    "metadata": {
+      "success": true,
+      "message": "Đã hủy liên kết với google"
+    }
+  }
+  ```
+
+#### Các Trường Hợp Test
+1. **Happy Path**: Hủy liên kết tài khoản đã liên kết
+2. **Chưa liên kết**: Cố gắng hủy liên kết tài khoản chưa được liên kết
+3. **Không có mật khẩu**: Cố gắng hủy liên kết khi tài khoản chưa có mật khẩu
+
+#### Possible Errors:
+- `401`: Chưa xác thực
+  ```json
+  {
+    "statusCode": 401,
+    "message": "Token không hợp lệ hoặc đã hết hạn",
+    "errors": null
+  }
+  ```
+- `400`: Chưa liên kết
+  ```json
+  {
+    "statusCode": 400,
+    "message": "Tài khoản này chưa được liên kết với google",
+    "errors": null
+  }
+  ```
+- `400`: Không có mật khẩu
+  ```json
+  {
+    "statusCode": 400,
+    "message": "Không thể hủy liên kết khi chưa thiết lập mật khẩu. Vui lòng thiết lập mật khẩu trước.",
+    "errors": null
+  }
+  ```
+
 ## 4. Các Flow Kiểm Thử
 
-### 4.1. Flow Đăng Ký - Đăng Nhập - Đăng Xuất
-1. **Đăng Ký**: Tạo tài khoản mới thông qua API `/auth/signup`
-2. **Đăng Nhập**: Đăng nhập với tài khoản vừa tạo qua API `/auth/login`, lưu token
-3. **Đăng Xuất**: Đăng xuất qua API `/auth/logout`, xóa token
+### 4.4. Flow OAuth - Liên kết - Hủy liên kết
+1. **Đăng nhập thông thường**: Đăng nhập bằng email/password
+2. **Liên kết Google**: Liên kết tài khoản Google với tài khoản hiện tại
+3. **Hủy liên kết Google**: Hủy bỏ liên kết Google
+4. **Đăng nhập Google**: Đăng nhập lại bằng Google (tạo tài khoản mới)
 
 Để thực hiện flow này trong Postman:
-1. Tạo một folder "Auth Flow 1" bên trong folder "Authentication"
-2. Thêm các request vào folder theo thứ tự: Đăng ký, Đăng nhập, Đăng xuất
-3. Chạy folder để thực hiện toàn bộ flow, hoặc sử dụng Collection Runner
-
-### 4.2. Flow Đăng Nhập - Refresh Token
-1. **Đăng Nhập**: Đăng nhập và lưu refresh token
-2. **Refresh Token**: Dùng refresh token để lấy access token mới
-3. **Kiểm Tra Access Token**: Sử dụng access token mới để gọi API được bảo vệ
-
-Để thực hiện trong Postman:
-1. Tạo folder "Auth Flow 2" trong folder "Authentication"
-2. Thêm các request: Đăng nhập, Refresh Token, GET /users/profile (hoặc bất kỳ API nào yêu cầu xác thực)
+1. Tạo folder "OAuth Flow" trong folder "Authentication"
+2. Thêm các request: Login, Link Google Account, Unlink Google Account, Login with Google
 3. Chạy folder theo thứ tự
-
-### 4.3. Flow Quên - Đặt Lại Mật Khẩu
-1. **Quên Mật Khẩu**: Gửi yêu cầu quên mật khẩu, nhận token reset
-2. **Đặt Lại Mật Khẩu**: Sử dụng token để đặt mật khẩu mới
-3. **Đăng Nhập với Mật Khẩu Mới**: Kiểm tra mật khẩu mới có hoạt động không
-
-Để thực hiện trong Postman:
-1. Tạo folder "Auth Flow 3" trong folder "Authentication"
-2. Thêm các request: Quên Mật Khẩu, Đặt Lại Mật Khẩu, Đăng Nhập (với mật khẩu mới)
-3. Chạy folder theo thứ tự
-
-## 5. Các Tình Huống Nâng Cao
-
-### 5.1. Kiểm Tra Bảo Mật Token
-Để kiểm tra bảo mật token, thực hiện các test sau:
-
-1. **Kiểm tra hết hạn token**:
-   - Đăng nhập, lưu token
-   - Đợi token hết hạn (có thể chỉnh sửa biến môi trường `tokenExpiry` để giả lập)
-   - Thử sử dụng token đã hết hạn
-   - Kiểm tra API trả về lỗi 401
-
-2. **Kiểm tra token rotation**:
-   - Đăng nhập, lưu refresh token
-   - Dùng refresh token để lấy token mới
-   - Thử dùng lại refresh token cũ
-   - Kiểm tra API trả về lỗi 403 (token đã được sử dụng)
-
-### 5.2. Kiểm Tra Rate Limiting
-Để kiểm tra rate limiting:
-
-1. Gửi nhiều request đăng nhập liên tiếp với thông tin không chính xác
-2. Kiểm tra sau một số lần nhất định, API sẽ trả về lỗi 429 (Too Many Requests)
-3. Chờ một khoảng thời gian và thử lại
-
-### 5.3. Kiểm Tra Validation
-Kiểm tra validation của các API:
-
-1. **Mật khẩu yếu**:
-   - Thử đăng ký/đổi mật khẩu với mật khẩu quá ngắn
-   - Thử mật khẩu không có chữ hoa/chữ thường/số/ký tự đặc biệt
-   - Kiểm tra thông báo lỗi chi tiết
-
-2. **Email không hợp lệ**:
-   - Thử đăng ký với email không đúng định dạng
-   - Kiểm tra thông báo lỗi
-
-## 6. Giải Quyết Vấn Đề Phổ Biến
-
-### 6.1. Token Không Hoạt Động
-Nếu token không hoạt động:
-
-1. Kiểm tra định dạng Authorization header: `Bearer {{token}}`
-2. Kiểm tra token có bị hết hạn không (xem biến `tokenExpiry`)
-3. Thử refresh token hoặc đăng nhập lại
-4. Kiểm tra logs server để biết lỗi chi tiết
-
-### 6.2. Rate Limiting Khi Test
-Khi gặp rate limiting:
-
-1. Tăng thời gian chờ giữa các request
-2. Sử dụng nhiều tài khoản test khác nhau
-3. Trong môi trường development, có thể đề nghị tắt rate limiting
-
-### 6.3. Reset Password Không Nhận Được Email
-Trong môi trường development:
-
-1. Kiểm tra resetToken trong response (thường được trả về trong development)
-2. Kiểm tra logs server xem email đã được gửi không
-3. Nếu dùng dịch vụ email giả lập (mailhog, mailtrap), kiểm tra inbox ở đó
 
 ---
 
-**Cập nhật lần cuối**: 2023-11-01 
+**Cập nhật lần cuối**: 2024-04-20 

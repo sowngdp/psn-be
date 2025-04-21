@@ -119,6 +119,20 @@ class AuthController {
       next(error);
     }
   }
+
+  static async loginWithGoogle(req, res, next) {
+    try {
+      const { idToken } = req.body;
+      const userCredentials = await AuthService.loginWithGoogle(idToken);
+      
+      return new OK({
+        message: 'Đăng nhập Google thành công',
+        metadata: userCredentials
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = AuthController; 

@@ -468,3 +468,65 @@ JWT_REFRESH_EXPIRATION=7d
 API_VERSION=v1
 UPLOAD_DIR=./uploads
 ```
+
+## Hướng dẫn thiết lập OAuth
+
+### Cấu hình Google OAuth
+
+#### 1. Đăng ký ứng dụng trên Google Cloud Platform
+1. Truy cập [Google Cloud Console](https://console.cloud.google.com/)
+2. Tạo project mới (nếu chưa có)
+3. Đi tới "APIs & Services" > "Credentials"
+4. Nhấp vào "Create Credentials" > "OAuth client ID"
+5. Chọn loại ứng dụng:
+   - Cho Mobile app: Chọn "iOS" hoặc "Android"
+   - Cho Android: Cung cấp SHA-1 fingerprint và package name
+   - Cho iOS: Cung cấp Bundle ID
+
+#### 2. Cấu hình biến môi trường
+Thêm vào file `.env`:
+```
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+```
+
+#### 3. Tích hợp với ứng dụng Mobile
+##### Android:
+```kotlin
+// Sử dụng Google Identity API
+val signInRequest = BeginSignInRequest.builder()
+    .setGoogleIdTokenRequestOptions(
+        BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+            .setSupported(true)
+            .setServerClientId(GOOGLE_CLIENT_ID)
+            .setFilterByAuthorizedAccounts(false)
+            .build())
+    .build()
+```
+
+##### iOS: 
+```swift
+// Sử dụng Google SignIn SDK
+GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: "your_google_client_id")
+```
+
+#### 4. Gửi idToken đến API
+Gửi POST request đến endpoint `/v1/api/auth/login/google` với body:
+```json
+{
+  "idToken": "google_id_token_from_mobile_app"
+}
+```
+
+### API OAuth Endpoints
+
+| Phương thức | Endpoint | Mô tả |
+|-------------|----------|-------|
+| POST | `/v1/api/auth/login/google` | Đăng nhập hoặc đăng ký bằng Google |
+| POST | `/v1/api/users/link/google` | Liên kết tài khoản hiện tại với Google |
+| DELETE | `/v1/api/users/unlink/google` | Hủy liên kết Google với tài khoản hiện tại |
+
+### Các lưu ý quan trọng
+1. Đảm bảo GOOGLE_CLIENT_ID trùng khớp giữa mobile app và backend
+2. Tài khoản Google phải có email hợp lệ
+3. Khi hủy liên kết, cần đảm bảo tài khoản người dùng đã có mật khẩu

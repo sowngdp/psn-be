@@ -22,8 +22,30 @@ const userSchema = new Schema({
   },
   password: {
     type: String,
-    required: true
+    required: function() {
+      // Password chỉ bắt buộc nếu không đăng nhập bằng provider khác
+      return !this.googleId && !this.appleId;
+    }
   },
+  // OAuth fields
+  googleId: {
+    type: String,
+    sparse: true
+  },
+  appleId: {
+    type: String,
+    sparse: true
+  },
+  provider: {
+    type: String,
+    enum: ['local', 'google', 'apple'],
+    default: 'local'
+  },
+  providerData: {
+    type: Object,
+    default: {}
+  },
+  // End OAuth fields
   avatar: {
     type: String,
     default: ''
@@ -174,6 +196,9 @@ userSchema.methods.getPreferenceBasedRecommendations = function() {
 // Middleware hash mật khẩu trước khi lưu
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
+  
+  // Bỏ qua nếu password là null hoặc undefined (đối với tài khoản OAuth)
+  if (!this.password) return next();
   
   try {
     const salt = await bcrypt.genSalt(10);

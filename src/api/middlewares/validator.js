@@ -1,6 +1,6 @@
 'use strict';
 
-const { validateRegister, validateLogin, validateEmail, validateResetPassword } = require('../../utils/validators');
+const { validateRegister, validateLogin, validateEmail, validateResetPassword, validateGoogleIdToken } = require('../../utils/validators');
 const { BadRequestError } = require('../../core/error.response');
 
 /**
@@ -55,9 +55,23 @@ const resetPassword = (req, res, next) => {
   }
 };
 
+/**
+ * Middleware validate Google ID token
+ */
+const googleIdToken = (req, res, next) => {
+  try {
+    const { error } = validateGoogleIdToken(req.body);
+    if (error) throw new BadRequestError(error.details[0].message);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   email,
-  resetPassword
+  resetPassword,
+  googleIdToken
 }; 

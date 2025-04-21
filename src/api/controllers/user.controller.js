@@ -1,6 +1,7 @@
 'use strict';
 
 const UserService = require('../../services/user.service');
+const GoogleAuthService = require('../../services/google-auth.service');
 const { OK, CREATED } = require('../../core/success.response');
 
 class UserController {
@@ -89,6 +90,49 @@ class UserController {
       return new OK({
         message: 'Cập nhật profile thành công',
         metadata: updatedProfile
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Liên kết tài khoản Google
+   */
+  static async linkGoogleAccount(req, res, next) {
+    try {
+      const { idToken } = req.body;
+      const userId = req.user.userId;
+
+      // Xác thực token Google
+      const googleUserData = await GoogleAuthService.verifyGoogleToken(idToken);
+      
+      // Liên kết tài khoản
+      const updatedUser = await UserService.linkGoogleAccount(userId, googleUserData);
+      
+      return new OK({
+        message: 'Liên kết tài khoản Google thành công',
+        metadata: updatedUser
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Hủy liên kết tài khoản
+   */
+  static async unlinkProvider(req, res, next) {
+    try {
+      const { provider } = req.params;
+      const userId = req.user.userId;
+      
+      // Hủy liên kết tài khoản
+      const result = await UserService.unlinkProvider(userId, provider);
+      
+      return new OK({
+        message: result.message,
+        metadata: { success: true }
       }).send(res);
     } catch (error) {
       next(error);

@@ -216,4 +216,30 @@ router.post('/request-reset', validator.email, AuthController.requestPasswordRes
  */
 router.post('/reset-password', validator.resetPassword, AuthController.resetPassword);
 
+/**
+ * @swagger
+ * /auth/login/google:
+ *   post:
+ *     summary: Đăng nhập bằng Google
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Token ID từ Google
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công
+ *       401:
+ *         description: Token không hợp lệ
+ */
+router.post('/login/google', validator.googleIdToken, AuthController.loginWithGoogle);
+
 module.exports = router;

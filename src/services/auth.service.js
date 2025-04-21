@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { BadRequestError, AuthFailureError, ForbiddenError } = require('../core/error.response');
 const TokenService = require('./token.service');
+const GoogleAuthService = require('./google-auth.service');
 
 class AuthService {
   /**
@@ -189,6 +190,35 @@ class AuthService {
     await user.save();
 
     return { success: true };
+  }
+
+  /**
+   * Đăng nhập bằng Google
+   * @param {String} idToken - Token ID từ Google
+   * @returns {Object} - Thông tin người dùng và token
+   */
+  static async loginWithGoogle(idToken) {
+    // Xác thực token và lấy thông tin từ Google
+    const googleUserData = await GoogleAuthService.verifyGoogleToken(idToken);
+    
+    // Tìm hoặc tạo user từ Google data
+    const user = await GoogleAuthService.findOrCreateGoogleUser(googleUserData);
+    
+    // Update last login time
+    user.lastLogin = new Date();
+    await user.save();
+    
+    // Tạo tokens
+    const tokens = await TokenService.generateTokenPair(user);
+    
+    // Return user info and tokens
+    const userWithoutPassword = { ...user.toObject() };
+    delete userWithoutPassword.password;
+    
+    return {
+      user: userWithoutPassword,
+      tokens
+    };
   }
 }
 

@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const UserController = require('../controllers/user.controller');
 const { authentication } = require('../middlewares/authentication');
+const validator = require('../middlewares/validator');
 
 /**
  * @swagger
@@ -214,5 +215,65 @@ router.get('/', authentication, UserController.getAllUsers);
  *         description: Không tìm thấy người dùng
  */
 router.delete('/:id', authentication, UserController.deleteUser);
+
+/**
+ * @swagger
+ * /users/link/google:
+ *   post:
+ *     summary: Liên kết tài khoản Google
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Token ID từ Google
+ *     responses:
+ *       200:
+ *         description: Liên kết tài khoản thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ *       409:
+ *         description: Xung đột (tài khoản đã được liên kết)
+ */
+router.post('/link/google', authentication, validator.googleIdToken, UserController.linkGoogleAccount);
+
+/**
+ * @swagger
+ * /users/unlink/{provider}:
+ *   delete:
+ *     summary: Hủy liên kết tài khoản
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: provider
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [google, apple]
+ *         description: Provider cần hủy liên kết
+ *     responses:
+ *       200:
+ *         description: Hủy liên kết thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ *       404:
+ *         description: Không tìm thấy provider
+ */
+router.delete('/unlink/:provider', authentication, UserController.unlinkProvider);
 
 module.exports = router; 
