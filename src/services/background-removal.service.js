@@ -125,7 +125,7 @@ class BackgroundRemovalService {
   }
 
   /**
-   * Lưu buffer ảnh vào Firebase Storage
+   * Lưu buffer ảnh vào Firebase Storage (dùng Firebase Client SDK)
    * @param {Buffer} imageBuffer - Buffer của ảnh
    * @param {String} fileExtension - Phần mở rộng của file (jpg, png,...)
    * @returns {Promise<string>} - URL công khai của ảnh đã lưu
@@ -135,20 +135,16 @@ class BackgroundRemovalService {
       // Đảm bảo luôn sử dụng định dạng PNG cho ảnh đã xử lý
       const contentType = 'image/png';
       fileExtension = 'png';
-      
-      logger.info(`Saving processed image as PNG`);
-      
+      logger.info(`Saving processed image as PNG (Firebase Client SDK)`);
       // Tạo tên file duy nhất
       const fileName = uuidv4();
-      
-      // Upload lên Firebase Storage
+      // Upload lên Firebase Storage qua Client SDK
       const downloadURL = await firebaseService.uploadBuffer(imageBuffer, {
         fileName,
         fileExtension,
         contentType,
         folder: 'items/processed'
       });
-      
       logger.info(`Image saved to Firebase Storage: ${downloadURL}`);
       return downloadURL;
     } catch (error) {

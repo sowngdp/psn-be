@@ -134,6 +134,9 @@ router.post('/login', validator.login, AuthController.login);
  */
 router.post('/refresh', AuthController.refreshToken);
 
+// Đảm bảo cung cấp một alias cho tương thích ngược
+router.post('/token/refresh', AuthController.refreshToken);
+
 /**
  * @swagger
  * /auth/logout:

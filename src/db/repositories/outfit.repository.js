@@ -636,4 +636,4 @@ class OutfitRepository extends BaseRepository {
   }
 }
 
-module.exports = new OutfitRepository(); 
+module.exports = OutfitRepository; 

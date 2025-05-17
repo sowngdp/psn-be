@@ -583,4 +583,4 @@ class ItemRepository extends BaseRepository {
   }
 }
 
-module.exports = new ItemRepository(); 
+module.exports = ItemRepository; 

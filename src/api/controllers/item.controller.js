@@ -71,7 +71,7 @@ class ItemController {
         }
       }
 
-      const items = await ItemService.findUserItems({
+      const result = await ItemService.findUserItems({
         userId,
         page: pageNum,
         limit: limitNum,
@@ -80,8 +80,8 @@ class ItemController {
       });
 
       // Thêm pagination headers
-      const totalItems = items.totalDocs || 0;
-      const totalPages = items.totalPages || 1;
+      const totalItems = result.pagination.totalItems || 0;
+      const totalPages = result.pagination.totalPages || 1;
       
       res.set({
         'X-Total-Count': totalItems.toString(),
@@ -121,7 +121,7 @@ class ItemController {
       return new OK({
         message: 'Lấy danh sách vật phẩm thành công',
         metadata: {
-          items: items.docs || [],
+          items: result.items || [],
           pagination: {
             total: totalItems,
             totalPages,

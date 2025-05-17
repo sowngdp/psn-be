@@ -9,14 +9,14 @@ const { authentication } = require('../middlewares/authentication');
 // Apply authentication middleware to all routes
 router.use(authentication);
 
-// Upload item with background removal and create a new item
+// [DEPRECATED] Không dùng nữa, chỉ giữ lại cho tương thích cũ
 router.post(
   '/with-bg-removal',
   singleUpload('image'),
   ItemUploadController.uploadItemWithBgRemoval
 );
 
-// Just process the image (remove background) without creating an item
+// Upload ảnh, trả về imageUrl (KHÔNG tạo item). Sau đó client gọi POST /items với imageUrl để tạo item.
 router.post(
   '/process-image',
   singleUpload('image'),

@@ -1,41 +1,27 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const keyTokenSchema = new mongoose.Schema({
+const keyTokenSchema = new Schema({
     user: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         required: true,
         ref: 'User'
     },
-    publicKey: {
-        type: String,
-        required: true
-    },
-    privateKey: {
-        type: String,
-        required: true
-    },
     refreshToken: {
-        type: String
+        type: String,
+        default: null
     },
     refreshTokensUsed: {
         type: [String],
         default: []
     },
+    originalRefreshTokenHash: {
+        type: String,
+        default: null
+    },
     lastRotated: {
         type: Date,
         default: Date.now
-    },
-    ip: {
-        type: String,
-        default: 'unknown'
-    },
-    userAgent: {
-        type: String,
-        default: 'unknown'
-    },
-    device: {
-        type: Object,
-        default: {}
     },
     revokedAt: {
         type: Date,
@@ -49,22 +35,50 @@ const keyTokenSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    ip: {
+        type: String,
+        default: 'unknown'
+    },
+    userAgent: {
+        type: String,
+        default: 'unknown'
+    },
+    device: {
+        type: Object,
+        default: {}
+    },
     securityIncidents: {
         type: [{
-            type: { type: String, enum: ['token_reuse', 'device_mismatch', 'suspicious_activity'] },
-            timestamp: { type: Date, default: Date.now },
+            type: {
+                type: String,
+                enum: ['token_reuse', 'device_mismatch', 'duplicate_token', 'token_collision']
+            },
+            details: String,
             ip: String,
             userAgent: String,
-            details: String
+            timestamp: {
+                type: Date,
+                default: Date.now
+            }
         }],
         default: []
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
     }
 }, {
-    timestamps: true,
-    collection: 'KeyTokens'
+    timestamps: true
 });
 
+// Đảm bảo các index cho hiệu suất
 keyTokenSchema.index({ user: 1 });
 keyTokenSchema.index({ refreshToken: 1 });
+keyTokenSchema.index({ 'securityIncidents.timestamp': -1 });
+keyTokenSchema.index({ lastRotated: -1 });
 
 module.exports = mongoose.model('KeyToken', keyTokenSchema); 

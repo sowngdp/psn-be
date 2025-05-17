@@ -14,8 +14,14 @@ class ItemUploadController {
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    * @param {Function} next - Express next middleware function
+   *  * [DEPRECATED] Upload an item image, remove background, and create a new item
+   * Không dùng nữa. Hãy dùng processImageOnly để upload ảnh, sau đó gọi POST /items để tạo item với imageUrl.
    */
   static async uploadItemWithBgRemoval(req, res, next) {
+    return res.status(410).json({
+      message: 'API này đã ngừng sử dụng. Hãy upload ảnh qua /item-uploads/process-image, sau đó tạo item qua /items với imageUrl.',
+      deprecated: true
+    });
     try {
       // Check if file exists
       if (!req.file) {
@@ -150,45 +156,30 @@ class ItemUploadController {
   }
 
   /**
-   * Upload an item image and remove background without creating an item
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   * @param {Function} next - Express next middleware function
+   * Upload an item image and remove background, trả về imageUrl (KHÔNG tạo item)
+   * Client sẽ dùng imageUrl này để tạo item ở bước tiếp theo
    */
   static async processImageOnly(req, res, next) {
     try {
-      // Check if file exists
       if (!req.file) {
-        throw new BadRequestError('No file uploaded');
+        throw new BadRequestError('Không có file nào được tải lên');
       }
-
       logger.info(`Processing image only: ${req.file.originalname}, size: ${req.file.size} bytes`);
-
-      // Process the image (remove background) - now with graceful fallback
-      logger.info('Removing background from image...');
-      logger.info(`File info: name=${req.file.originalname}, type=${req.file.mimetype}, size=${req.file.size}`);
       let processedImageBuffer;
       let backgroundRemoved = true;
-      
       try {
         processedImageBuffer = await BackgroundRemovalService.removeBackground(req.file.buffer);
       } catch (bgError) {
-        // Background removal service will now handle errors and return original image
-        // This catch is just for unexpected errors
         logger.error('Unexpected error in background removal:', bgError);
         processedImageBuffer = req.file.buffer;
         backgroundRemoved = false;
       }
-      
-      // If we got back the same buffer, background removal failed or was skipped
       if (processedImageBuffer === req.file.buffer) {
         backgroundRemoved = false;
         logger.warn('Using original image (background removal not applied)');
       }
-      
-      // Save the processed image to Firebase
       logger.info('Saving processed image to Firebase...');
-      const imageExtension = 'png'; // Luôn lưu dưới dạng PNG vì đó là định dạng đầu ra của removeBackground
+      const imageExtension = 'png';
       let imageUrl;
       try {
         imageUrl = await BackgroundRemovalService.saveImage(processedImageBuffer, imageExtension);
@@ -196,11 +187,9 @@ class ItemUploadController {
         logger.error('Error saving image to Firebase:', storageError);
         throw new InternalServerError('Failed to save processed image to Firebase');
       }
-      
-      // Return success response
       logger.info(`Image processed successfully: ${imageUrl}`);
       return new OK({
-        message: backgroundRemoved 
+        message: backgroundRemoved
           ? 'Image processed successfully with background removed'
           : 'Image processed successfully (background removal skipped)',
         metadata: {

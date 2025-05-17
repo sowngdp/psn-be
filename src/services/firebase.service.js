@@ -10,10 +10,16 @@ const logger = require('../utils/logger');
 class FirebaseService {
     constructor() {
         try {
-            // Check if Firebase app already exists, otherwise initialize a new one
-            this.app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+            const appName = 'psn-app';
+            // Check if Firebase app with appName already exists, otherwise initialize a new one
+            if (!getApps().some(app => app.name === appName)) {
+                this.app = initializeApp(firebaseConfig, appName);
+                logger.info('Firebase initialized successfully');
+            } else {
+                this.app = getApp(appName);
+                logger.info('Firebase app already initialized, reusing instance');
+            }
             this.storage = getStorage(this.app);
-            logger.info('Firebase initialized successfully');
         } catch (error) {
             logger.error('Firebase initialization error:', error);
             throw error;

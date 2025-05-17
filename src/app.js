@@ -28,13 +28,13 @@ app.use(cors());
 app.use(helmet());
 app.use(compression());
 
-// Initialize Firebase - Client SDK
-try {
-  require('./services/firebase.service');
-  console.log('Firebase Client SDK initialized successfully');
-} catch (error) {
-  console.error('Error initializing Firebase Client SDK:', error);
-}
+// // Initialize Firebase - Client SDK
+// try {
+//   require('./services/firebase.service');
+//   console.log('Firebase Client SDK initialized successfully');
+// } catch (error) {
+//   console.error('Error initializing Firebase Client SDK:', error);
+// }
 
 // Khởi tạo JWT config trước khi khởi động server
 let serverInitialized = false;
@@ -53,6 +53,9 @@ const initServer = async () => {
     }));
 
     // API routes
+    app.use('/api/v1', apiRoutes);
+    
+    // Tương thích với các yêu cầu cũ dạng /v1/api
     app.use('/v1/api', apiRoutes);
 
     // Route mặc định

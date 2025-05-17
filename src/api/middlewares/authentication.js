@@ -4,7 +4,7 @@ const { AuthFailureError, NotFoundError, ForbiddenError } = require('../../core/
 const TokenService = require('../../services/token.service');
 const crypto = require('crypto');
 const { config: jwtConfig } = require('../../configs/jwt');
-const { isValidJwtFormat, verifyJwtToken, checkTokenExpiration } = require('../../utils/security');
+const { isValidJwtFormat, verifyJwtToken, checkTokenExpiration, hashToken } = require('../../utils/security');
 const { StatusCodes } = require('../../utils/httpStatusCode');
 
 const HEADER = {
@@ -197,6 +197,7 @@ const attemptTokenRefresh = async (req, res, next) => {
     
     // Thêm token mới vào response headers
     res.setHeader('X-New-Access-Token', tokens.accessToken);
+    res.setHeader('X-New-Refresh-Token', tokens.refreshToken);
     
     // Decode token mới để lấy thông tin user
     const decoded = JWT.decode(tokens.accessToken);
@@ -207,6 +208,12 @@ const attemptTokenRefresh = async (req, res, next) => {
       email: decoded.email,
       roles: decoded.roles || []
     };
+    
+    // Nếu có metadata về va chạm token, thêm thông tin vào header
+    if (tokens._meta && tokens._meta.collisions) {
+      res.setHeader('X-Token-Collision-Resolved', 'true');
+      res.setHeader('X-Token-Collision-Count', tokens._meta.collisions);
+    }
     
     next();
   } catch (error) {

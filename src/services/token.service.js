@@ -6,7 +6,7 @@ const { createTokenPair } = require('../api/middlewares/authentication');
 const { AuthFailureError, BadRequestError, NotFoundError, ForbiddenError } = require('../core/error.response');
 const crypto = require('crypto');
 const { config: jwtConfig } = require('../configs/jwt');
-const { verifyJwtToken, checkTokenExpiration } = require('../utils/security');
+const { verifyJwtToken, checkTokenExpiration, hashToken } = require('../utils/security');
 
 class TokenService {
     /**
@@ -16,17 +16,23 @@ class TokenService {
      * @returns {Object} tokens - Cặp token mới
      */
     static async generateTokenPair(user, options = {}) {
-        // Tạo payload
+        // Tạo payload có tính duy nhất cao
+        const uniqueTimestamp = Date.now();
+        const uniqueRandom = crypto.randomBytes(32).toString('hex');
+        const ipPart = (options.ip || "unknown").replace(/[^a-zA-Z0-9]/g, '');
+        const deviceHash = options.device ? crypto.createHash('md5').update(JSON.stringify(options.device)).digest('hex').substring(0, 8) : 'nodevice';
+        
         const payload = {
             userId: user._id,
             email: user.email,
             roles: user.roles,
             // Thêm thông tin fingerprint để tăng cường bảo mật
-            iat: Math.floor(Date.now() / 1000),
-            jti: crypto.randomBytes(16).toString('hex') // JWT ID - unique identifier
+            iat: Math.floor(uniqueTimestamp / 1000),
+            // JTI đủ phức tạp để tránh va chạm
+            jti: `${uniqueRandom}_${uniqueTimestamp}_${ipPart}_${deviceHash}_${Math.random().toString(36).substring(2)}`
         };
 
-        // Nếu có thông tin thiết bị, thêm vào fingerprint
+        // Thêm fingerprint
         if (options.device || options.ip || options.userAgent) {
             payload.fingerprint = this._generateFingerprint(options);
         }
@@ -34,16 +40,47 @@ class TokenService {
         // Tạo token sử dụng RSA keys từ cấu hình
         const tokens = await createTokenPair(payload);
         
-        // Lưu token trong database cùng với thông tin thiết bị
-        await this.createOrUpdateKeyToken({
-            userId: user._id,
-            refreshToken: tokens.refreshToken,
-            userAgent: options.userAgent,
-            ip: options.ip,
-            device: options.device
-        });
-        
-        return tokens;
+        try {
+            // Lưu token trong database cùng với thông tin thiết bị
+            const hashedRefreshToken = hashToken(tokens.refreshToken);
+            
+            // Kiểm tra trùng lặp trước khi lưu
+            const existingToken = await KeyTokenModel.findOne({ 
+                refreshToken: hashedRefreshToken,
+                user: { $ne: user._id } // Chỉ báo lỗi nếu token trùng với user khác
+            });
+            
+            if (existingToken) {
+                console.warn(`[WARNING] Token collision detected during token generation for user ${user._id}`);
+                // Tạo lại token nếu bị trùng
+                return this.generateTokenPair(user, {
+                    ...options,
+                    retry: (options.retry || 0) + 1
+                });
+            }
+            
+            // Cập nhật hoặc tạo mới key token
+            await KeyTokenModel.findOneAndUpdate(
+                { user: user._id },
+                {
+                    $set: {
+                        refreshToken: hashedRefreshToken,
+                        refreshTokensUsed: [],
+                        lastRotated: new Date(),
+                        originalRefreshTokenHash: crypto.createHash('md5').update(tokens.refreshToken).digest('hex'),
+                        ip: options.ip || 'unknown',
+                        userAgent: options.userAgent || 'unknown',
+                        device: options.device || {}
+                    }
+                },
+                { upsert: true, new: true }
+            );
+            
+            return tokens;
+        } catch (error) {
+            console.error('Error in generateTokenPair:', error);
+            throw error;
+        }
     }
     
     /**
@@ -57,25 +94,32 @@ class TokenService {
         const values = [
             ip || '',
             userAgent || '',
-            device ? JSON.stringify(device) : ''
+            device ? JSON.stringify(device) : '',
+            Date.now().toString(), // Thêm timestamp chính xác đến millisecond
+            Math.random().toString() // Thêm số ngẫu nhiên để tăng tính duy nhất
         ].join('|');
         
         return crypto.createHash('sha256').update(values).digest('hex');
     }
     
     /**
-     * Tạo hoặc cập nhật key token
+     * Tạo hoặc cập nhật key token với token được hash
      * @param {Object} param0 - Thông tin token và thiết bị
      * @returns {Object} - Key token đã tạo hoặc cập nhật
      */
     static async createOrUpdateKeyToken({ userId, refreshToken, userAgent, ip, device }) {
         try {
+            // Hash token trước khi lưu
+            const hashedRefreshToken = hashToken(refreshToken);
+            
             // Kiểm tra xem đã có key token chưa
             const filter = { user: userId };
             const update = {
-                refreshToken,
+                refreshToken: hashedRefreshToken,
                 refreshTokensUsed: [],
                 lastRotated: new Date(),
+                // Lưu trữ token gốc trong một trường riêng để so sánh khi cần
+                originalRefreshTokenHash: crypto.createHash('md5').update(refreshToken).digest('hex'),
                 // Thêm thông tin thiết bị và IP
                 userAgent: userAgent || 'unknown',
                 ip: ip || 'unknown',
@@ -112,9 +156,11 @@ class TokenService {
      * @returns {Object} - Key token tìm thấy
      */
     static async findByUserIdAndRefreshToken(userId, refreshToken) {
+        // Hash token để tìm kiếm
+        const hashedRefreshToken = hashToken(refreshToken);
         return await KeyTokenModel.findOne({
             user: userId,
-            refreshToken
+            refreshToken: hashedRefreshToken
         }).lean();
     }
     
@@ -124,11 +170,13 @@ class TokenService {
      * @returns {Object} - Key token tìm thấy
      */
     static async findByRefreshToken(refreshToken) {
-        return await KeyTokenModel.findOne({ refreshToken });
+        // Hash token để tìm kiếm
+        const hashedRefreshToken = hashToken(refreshToken);
+        return await KeyTokenModel.findOne({ refreshToken: hashedRefreshToken });
     }
     
     /**
-     * Cập nhật refresh token và thêm token cũ vào danh sách đã sử dụng
+     * Cập nhật refresh token và thêm token cũ vào danh sách đã sử dụng (với hash)
      * @param {String} userId - ID của người dùng
      * @param {String} oldRefreshToken - Refresh token cũ
      * @param {String} newRefreshToken - Refresh token mới
@@ -136,24 +184,41 @@ class TokenService {
      * @returns {Object} - Key token đã cập nhật
      */
     static async updateRefreshToken(userId, oldRefreshToken, newRefreshToken, clientInfo = {}) {
+        // Hash các token
+        const hashedOldToken = hashToken(oldRefreshToken);
+        const hashedNewToken = hashToken(newRefreshToken);
+        
         // Kiểm tra trùng lặp refresh token để ngăn chặn reuse attack
-        const existingToken = await KeyTokenModel.findOne({ refreshToken: newRefreshToken });
+        const existingToken = await KeyTokenModel.findOne({ refreshToken: hashedNewToken });
         if (existingToken) {
+            // Log sự cố duplicate token
+            this._logSecurityIncident({
+                userId,
+                ip: clientInfo.ip || 'unknown',
+                userAgent: clientInfo.userAgent || 'unknown',
+                type: 'duplicate_token',
+                details: 'Duplicate token hash detected during token refresh'
+            });
+            
             throw new AuthFailureError('Token generation error: duplicate token detected');
         }
         
+        // Tạo hash ngắn để lưu trong used tokens (tiết kiệm không gian)
+        const shortOldTokenHash = crypto.createHash('md5').update(oldRefreshToken).digest('hex');
+        
         return await KeyTokenModel.findOneAndUpdate(
-            { user: userId, refreshToken: oldRefreshToken },
+            { user: userId, refreshToken: hashedOldToken },
             {
                 $set: {
-                    refreshToken: newRefreshToken,
+                    refreshToken: hashedNewToken,
                     lastRotated: new Date(),
+                    originalRefreshTokenHash: crypto.createHash('md5').update(newRefreshToken).digest('hex'),
                     ip: clientInfo.ip || 'unknown',
                     userAgent: clientInfo.userAgent || 'unknown',
                     device: clientInfo.device || {}
                 },
                 $push: {
-                    refreshTokensUsed: oldRefreshToken
+                    refreshTokensUsed: shortOldTokenHash
                 }
             },
             { new: true }
@@ -188,6 +253,8 @@ class TokenService {
             throw new BadRequestError('Refresh token is required');
         }
         
+        let tokenCollisions = 0;
+        
         try {
             // Verify refresh token sử dụng public key từ cấu hình
             if (!jwtConfig.keys.public) {
@@ -209,18 +276,41 @@ class TokenService {
                 throw new AuthFailureError('Refresh token has expired');
             }
             
-            // Tìm token trong database
-            const foundToken = await this.findByRefreshToken(refreshToken);
+            // Tạo hash của token để tìm kiếm trong database
+            const hashedRefreshToken = hashToken(refreshToken);
+            
+            // Tạo hash ngắn để so sánh với danh sách đã sử dụng
+            const shortTokenHash = crypto.createHash('md5').update(refreshToken).digest('hex');
+            
+            // Tìm token trong database và kiểm tra
+            const foundToken = await KeyTokenModel.findOne({ refreshToken: hashedRefreshToken });
+            
+            // Nếu không tìm thấy, thử tìm theo token gốc (để xử lý chuyển tiếp)
             if (!foundToken) {
-                throw new AuthFailureError('Invalid refresh token. Token not found in database');
+                // Trong quá trình chuyển tiếp, token có thể chưa được hash
+                const legacyToken = await KeyTokenModel.findOne({ refreshToken });
+                if (!legacyToken) {
+                    throw new AuthFailureError('Invalid refresh token. Token not found in database');
+                }
+                
+                // Cập nhật lên định dạng mới
+                await KeyTokenModel.updateOne(
+                    { _id: legacyToken._id },
+                    { $set: { refreshToken: hashedRefreshToken } }
+                );
+                
+                console.log(`Migrated legacy token to hashed format for user ${legacyToken.user}`);
+                return this.refreshToken({ refreshToken, ip, userAgent, device }); // Gọi lại hàm sau khi cập nhật
             }
             
             // Kiểm tra xem token đã được sử dụng hay chưa
-            if (foundToken.refreshTokensUsed.includes(refreshToken)) {
+            // Hỗ trợ cả hai định dạng: hash ngắn và token đầy đủ
+            if (foundToken.refreshTokensUsed.includes(shortTokenHash) || 
+                foundToken.refreshTokensUsed.includes(refreshToken)) {
                 // Xóa tất cả token của người dùng vì có dấu hiệu token bị đánh cắp
                 await this.removeKeyByUserId(decoded.userId);
                 
-                // Tạo bản ghi về hành vi đáng ngờ (có thể mở rộng với một service riêng)
+                // Tạo bản ghi về hành vi đáng ngờ
                 this._logSecurityIncident({
                     userId: decoded.userId,
                     ip,
@@ -232,13 +322,10 @@ class TokenService {
                 throw new ForbiddenError('Security violation: token reuse detected. All sessions have been terminated.');
             }
             
-            // Kiểm tra thông tin fingerprint (nếu có) để ngăn chặn token được sử dụng trên thiết bị khác
+            // Kiểm tra thông tin fingerprint (nếu có)
             if (decoded.fingerprint) {
                 const currentFingerprint = this._generateFingerprint({ ip, userAgent, device });
-                // So sánh fingerprint để phát hiện token chuyển thiết bị
-                // Có thể thực hiện kiểm tra linh hoạt hơn thay vì yêu cầu trùng khớp chính xác
                 if (decoded.fingerprint !== currentFingerprint) {
-                    // Log sự kiện đáng ngờ nhưng vẫn cho phép tiếp tục (có thể thay đổi theo chính sách)
                     this._logSecurityIncident({
                         userId: decoded.userId,
                         ip,
@@ -246,30 +333,56 @@ class TokenService {
                         type: 'device_mismatch',
                         details: 'Refresh token used from a different device/IP'
                     });
-                    
-                    // Mức độ nghiêm ngặt cao hơn có thể ném lỗi ở đây:
-                    // throw new ForbiddenError('Security violation: token used from a different device');
                 }
             }
             
-            // Tạo tokens mới
+            // Tạo user object từ decoded token
             const user = {
                 _id: decoded.userId,
                 email: decoded.email,
                 roles: decoded.roles
             };
             
-            const tokens = await this.generateTokenPair(user, { ip, userAgent, device });
-            
-            // Cập nhật refresh token trong database
-            await this.updateRefreshToken(
-                decoded.userId, 
-                refreshToken, 
-                tokens.refreshToken,
-                { ip, userAgent, device }
-            );
-            
-            return tokens;
+            // Trực tiếp cập nhật token - phương pháp mạnh mẽ hơn
+            // Không cần kiểm tra trùng lặp vì đang cập nhật token của chính user hiện tại
+            try {
+                // Tạo token mới
+                const tokens = await createTokenPair({
+                    userId: user._id,
+                    email: user.email,
+                    roles: user.roles,
+                    iat: Math.floor(Date.now() / 1000),
+                    jti: crypto.randomBytes(32).toString('hex') + "_" + Date.now() + "_" + (ip || "unknown").replace(/[^a-zA-Z0-9]/g, '')
+                });
+                
+                // Hash token để lưu vào DB
+                const hashedNewToken = hashToken(tokens.refreshToken);
+                const shortNewTokenHash = crypto.createHash('md5').update(tokens.refreshToken).digest('hex');
+                
+                // Cập nhật trực tiếp trong database
+                await KeyTokenModel.findOneAndUpdate(
+                    { user: user._id },
+                    {
+                        $set: {
+                            refreshToken: hashedNewToken,
+                            originalRefreshTokenHash: shortNewTokenHash,
+                            lastRotated: new Date(),
+                            ip: ip || 'unknown',
+                            userAgent: userAgent || 'unknown',
+                            device: device || {}
+                        },
+                        $push: {
+                            refreshTokensUsed: shortTokenHash
+                        }
+                    },
+                    { new: true }
+                );
+                
+                return tokens;
+            } catch (error) {
+                console.error('Error updating token:', error);
+                throw new AuthFailureError('Failed to refresh token');
+            }
         } catch (error) {
             console.error('Refresh token error:', error);
             if (error instanceof jwt.TokenExpiredError) {
@@ -283,7 +396,7 @@ class TokenService {
     }
     
     /**
-     * Thu hồi token (logout)
+     * Thu hồi token (logout) với hash
      * @param {Object} param0 - Thông tin refresh token và client
      * @returns {Object} - Kết quả thu hồi
      */
@@ -292,14 +405,19 @@ class TokenService {
             throw new BadRequestError('Refresh token is required');
         }
         
-        const foundToken = await this.findByRefreshToken(refreshToken);
+        // Hash token để tìm kiếm
+        const hashedRefreshToken = hashToken(refreshToken);
+        const foundToken = await KeyTokenModel.findOne({ refreshToken: hashedRefreshToken });
         if (!foundToken) {
             throw new NotFoundError('Refresh token not found');
         }
         
+        // Tạo hash ngắn để lưu trong used tokens
+        const shortTokenHash = crypto.createHash('md5').update(refreshToken).digest('hex');
+        
         // Thêm token vào danh sách đã sử dụng và xóa refresh token hiện tại
         return await KeyTokenModel.findOneAndUpdate(
-            { refreshToken },
+            { refreshToken: hashedRefreshToken },
             {
                 $set: { 
                     refreshToken: null,
@@ -307,7 +425,7 @@ class TokenService {
                     revokedIp: ip || 'unknown',
                     revokedUserAgent: userAgent || 'unknown'
                 },
-                $push: { refreshTokensUsed: refreshToken }
+                $push: { refreshTokensUsed: shortTokenHash }
             },
             { new: true }
         );
@@ -329,6 +447,70 @@ class TokenService {
         
         // TODO: Thêm lưu vào database hoặc gửi thông báo trong tương lai
     }
+    
+    /**
+     * Làm sạch các token cũ, đã hết hạn hoặc không sử dụng
+     * @returns {Object} - Kết quả làm sạch
+     */
+    static async cleanupTokens() {
+        try {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() - 30); // Xóa token cũ hơn 30 ngày
+            
+            // Xóa các token đã bị thu hồi hoặc cũ
+            const revokedResult = await KeyTokenModel.deleteMany({
+                $or: [
+                    { refreshToken: null, revokedAt: { $lt: expiryDate } },
+                    { lastRotated: { $lt: expiryDate } }
+                ]
+            });
+            
+            // Xóa danh sách refreshTokensUsed cũ
+            const updatedResult = await KeyTokenModel.updateMany(
+                { 'refreshTokensUsed.0': { $exists: true } },
+                { 
+                    $set: { 
+                        refreshTokensUsed: [] 
+                    }
+                }
+            );
+            
+            return {
+                tokensDeleted: revokedResult.deletedCount,
+                tokensUpdated: updatedResult.modifiedCount
+            };
+        } catch (error) {
+            console.error('Error cleaning up tokens:', error);
+            throw error;
+        }
+    }
 }
+
+// Lịch trình làm sạch token định kỳ
+let cleanupScheduled = false;
+
+// Khởi tạo lịch trình làm sạch token
+const initTokenCleanupSchedule = () => {
+    if (cleanupScheduled) return;
+    
+    // Làm sạch token hết hạn mỗi 24 giờ
+    const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 giờ
+    
+    setInterval(async () => {
+        try {
+            console.log('Running scheduled token cleanup...');
+            const result = await TokenService.cleanupTokens();
+            console.log('Token cleanup completed:', result);
+        } catch (error) {
+            console.error('Error in scheduled token cleanup:', error);
+        }
+    }, CLEANUP_INTERVAL);
+    
+    cleanupScheduled = true;
+    console.log('Token cleanup schedule initialized');
+};
+
+// Tự động khởi tạo lịch trình làm sạch
+initTokenCleanupSchedule();
 
 module.exports = TokenService; 

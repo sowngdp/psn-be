@@ -31,19 +31,22 @@ class ItemService {
       throw new BadRequestError('Tên và danh mục vật phẩm là bắt buộc');
     }
 
-    const newItem = await ItemRepository.create(itemData);
+    const itemRepository = new ItemRepository();
+    const newItem = await itemRepository.create(itemData);
     return newItem;
   }
 
   // Lấy danh sách item của người dùng
   static async findUserItems({ userId, page = 1, limit = 20, filter = {}, sort = 'ctime' }) {
-    return await ItemRepository.findUserItems({ userId, page, limit, filter, sort });
+    const itemRepository = new ItemRepository();
+    return await itemRepository.findUserItems({ userId, page, limit, filter, sort });
   }
 
   // Lấy chi tiết item
   static async findItemById(itemId, userId) {
+    const itemRepository = new ItemRepository();
     // Kiểm tra item tồn tại và thuộc về người dùng
-    const item = await ItemRepository.findUserItem(itemId, userId);
+    const item = await itemRepository.findUserItem(itemId, userId);
     
     if (!item) {
       throw new NotFoundError('Không tìm thấy vật phẩm');
@@ -54,8 +57,9 @@ class ItemService {
 
   // Cập nhật item
   static async updateItem(itemId, userId, updateData) {
+    const itemRepository = new ItemRepository();
     // Kiểm tra item tồn tại và thuộc về người dùng
-    const item = await ItemRepository.findUserItem(itemId, userId);
+    const item = await itemRepository.findUserItem(itemId, userId);
     
     if (!item) {
       throw new NotFoundError('Không tìm thấy vật phẩm');
@@ -67,15 +71,16 @@ class ItemService {
     }
     
     // Cập nhật thông tin item
-    const updatedItem = await ItemRepository.updateById(itemId, updateData);
+    const updatedItem = await itemRepository.updateById(itemId, updateData);
     
     return updatedItem;
   }
 
   // Xóa item
   static async deleteItem(itemId, userId) {
+    const itemRepository = new ItemRepository();
     // Kiểm tra item tồn tại và thuộc về người dùng
-    const item = await ItemRepository.findUserItem(itemId, userId);
+    const item = await itemRepository.findUserItem(itemId, userId);
     
     if (!item) {
       throw new NotFoundError('Không tìm thấy vật phẩm');
@@ -111,30 +116,32 @@ class ItemService {
     }
     
     // Xóa item
-    await ItemRepository.deleteById(itemId);
+    await itemRepository.deleteById(itemId);
     
     return { success: true, message: 'Vật phẩm đã được xóa' };
   }
 
   // Cập nhật trạng thái item
   static async updateItemStatus(itemId, userId, statusData) {
+    const itemRepository = new ItemRepository();
     // Kiểm tra item tồn tại và thuộc về người dùng
-    const item = await ItemRepository.findUserItem(itemId, userId);
+    const item = await itemRepository.findUserItem(itemId, userId);
     
     if (!item) {
       throw new NotFoundError('Không tìm thấy vật phẩm');
     }
     
     // Cập nhật trạng thái
-    const updatedItem = await ItemRepository.updateItemStatus(itemId, userId, statusData);
+    const updatedItem = await itemRepository.updateItemStatus(itemId, userId, statusData);
     
     return updatedItem;
   }
 
   // Xử lý tải lên hình ảnh
   static async uploadItemImage(itemId, userId, file) {
+    const itemRepository = new ItemRepository();
     // Kiểm tra item tồn tại và thuộc về người dùng
-    const item = await ItemRepository.findUserItem(itemId, userId);
+    const item = await itemRepository.findUserItem(itemId, userId);
     
     if (!item) {
       throw new NotFoundError('Không tìm thấy vật phẩm');
@@ -161,7 +168,7 @@ class ItemService {
       }
       
       // Cập nhật URL hình ảnh trong item
-      const updatedItem = await ItemRepository.updateById(itemId, { imageUrl });
+      const updatedItem = await itemRepository.updateById(itemId, { imageUrl });
       
       return updatedItem;
     } catch (error) {
@@ -172,8 +179,9 @@ class ItemService {
 
   // Xử lý tải lên nhiều hình ảnh
   static async uploadMultipleImages(itemId, userId, files) {
+    const itemRepository = new ItemRepository();
     // Kiểm tra item tồn tại và thuộc về người dùng
-    const item = await ItemRepository.findUserItem(itemId, userId);
+    const item = await itemRepository.findUserItem(itemId, userId);
     
     if (!item) {
       throw new NotFoundError('Không tìm thấy vật phẩm');
@@ -195,7 +203,7 @@ class ItemService {
       }
       
       // Cập nhật URL hình ảnh trong item (giả sử model đã hỗ trợ nhiều ảnh)
-      const updatedItem = await ItemRepository.updateById(itemId, { images: imageUrls });
+      const updatedItem = await itemRepository.updateById(itemId, { images: imageUrls });
       
       return updatedItem;
     } catch (error) {
@@ -207,27 +215,28 @@ class ItemService {
   // Phân tích dữ liệu tủ đồ
   static async getWardrobeAnalytics(userId) {
     try {
+      const itemRepository = new ItemRepository();
       // Lấy tất cả items của người dùng
-      const { data: items } = await ItemRepository.findUserItems({ 
+      const { data: items } = await itemRepository.findUserItems({ 
         userId, 
         limit: 1000, // Lấy một số lượng lớn để phân tích
         filter: {} 
       });
       
       // Phân tích theo danh mục
-      const categoryAnalytics = await ItemRepository.getItemsByCategory(userId);
+      const categoryAnalytics = await itemRepository.getItemsByCategory(userId);
       
       // Phân tích theo mùa
-      const seasonAnalytics = await ItemRepository.getItemsBySeason(userId);
+      const seasonAnalytics = await itemRepository.getItemsBySeason(userId);
       
       // Tính toán các item được sử dụng nhiều nhất
-      const mostUsedItems = await ItemRepository.getMostUsedItems(userId, 10);
+      const mostUsedItems = await itemRepository.getMostUsedItems(userId, 10);
       
       // Tính toán các item ít được sử dụng nhất
-      const leastUsedItems = await ItemRepository.getLeastUsedItems(userId, 10);
+      const leastUsedItems = await itemRepository.getLeastUsedItems(userId, 10);
       
       // Phân tích theo màu sắc
-      const colorAnalytics = await ItemRepository.getItemsByColor(userId);
+      const colorAnalytics = await itemRepository.getItemsByColor(userId);
       
       return {
         totalItems: items.length,
@@ -246,6 +255,7 @@ class ItemService {
   // Tạo nhiều items cùng lúc (bulk upload)
   static async bulkCreateItems(userId, itemsData) {
     try {
+      const itemRepository = new ItemRepository();
       if (!Array.isArray(itemsData) || itemsData.length === 0) {
         throw new BadRequestError('Dữ liệu không hợp lệ');
       }
@@ -257,7 +267,7 @@ class ItemService {
       }));
       
       // Tạo nhiều items cùng lúc
-      const newItems = await ItemRepository.bulkCreate(enrichedItemsData);
+      const newItems = await itemRepository.bulkCreate(enrichedItemsData);
       
       return newItems;
     } catch (error) {
