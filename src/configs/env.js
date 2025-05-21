@@ -21,22 +21,22 @@ if (process.env[`${env_prefix}DB_PROTOCOL`] === 'mongodb+srv') {
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env[`${env_prefix}APP_PORT`] || 3052,
-  
+
   // MongoDB
   MONGODB_URI: mongoURI,
-  
+
   // JWT
   JWT_SECRET: process.env.JWT_SECRET || 'personal-style-network-jwt-secret-key',
   JWT_EXPIRATION: process.env.JWT_EXPIRATION || '1d',
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'personal-style-network-refresh-token-key',
   JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION || '7d',
-  
+
   // AWS
   AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
   AWS_REGION: process.env.AWS_REGION,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
-  
+
   // Firebase
   FIREBASE: {
     apiKey: process.env.FIREBASE_API_KEY,
@@ -48,10 +48,16 @@ const env = {
     appId: process.env.FIREBASE_APP_ID,
     measurementId: process.env.FIREBASE_MEASUREMENT_ID
   },
-  
+
+  // OpenAI
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+  OPENAI_MAX_TOKENS: parseInt(process.env.OPENAI_MAX_TOKENS || '2048'),
+  OPENAI_TEMPERATURE: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
+
   // API
   API_VERSION: 'v1',
   UPLOAD_DIR: './uploads'
 };
 
-module.exports = env; 
+module.exports = env;

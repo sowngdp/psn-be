@@ -1,7 +1,7 @@
 'use strict'
 
 const mongoose = require('mongoose');
-const { 
+const {
   db: { host, port, name, username, password }
 } = require('./config.mongodb');
 const logger = require('../utils/logger');
@@ -24,30 +24,30 @@ class Database {
       mongoose.set('debug', { color: true });
     }
 
-    mongoose.connect(connectString, {
+    mongoose.connect(process.env.MONGODB_URI, {
       maxPoolSize: 50
     })
-    .then(() => {
-      console.log(`MongoDB connection successful!`);
-      this.createIndexes().catch(err => {
-        logger.error('Error creating indexes', err);
-      });
-    })
-    .catch(err => console.error(`MongoDB connection error:`, err));
-    
+      .then(() => {
+        console.log(`MongoDB connection successful!`);
+        this.createIndexes().catch(err => {
+          logger.error('Error creating indexes', err);
+        });
+      })
+      .catch(err => console.error(`MongoDB connection error:`, err));
+
     // Xử lý các sự kiện của kết nối
     mongoose.connection.on('connected', () => {
       console.log('MongoDB connected');
     });
-    
+
     mongoose.connection.on('error', (err) => {
       console.error('MongoDB connection error:', err);
     });
-    
+
     mongoose.connection.on('disconnected', () => {
       console.warn('MongoDB disconnected');
     });
-    
+
     // Xử lý khi ứng dụng đóng
     process.on('SIGINT', async () => {
       await mongoose.connection.close();
@@ -61,17 +61,17 @@ class Database {
     try {
       // Import các repositories
       const { ItemRepository, OutfitRepository } = require('../db/repositories');
-      
+
       // Khởi tạo repositories
       const itemRepo = new ItemRepository();
       const outfitRepo = new OutfitRepository();
-      
+
       // Tạo indexes
       await itemRepo.createIndexes();
       if (typeof outfitRepo.createIndexes === 'function') {
         await outfitRepo.createIndexes();
       }
-      
+
       logger.info('Database indexes created successfully');
     } catch (error) {
       logger.error('Failed to create database indexes', error);

@@ -11,7 +11,7 @@ const RecommendationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['daily', 'event', 'weather', 'season', 'style', 'occasion'],
+      enum: ['daily', 'event', 'weather', 'season', 'style', 'occasion', 'ai_suggestion'],
       required: true,
     },
     context: {
@@ -70,6 +70,20 @@ const RecommendationSchema = new mongoose.Schema(
         type: Date,
       },
     },
+    aiSuggestions: {
+      suggestions: {
+        type: String,
+        required: function () {
+          return this.type === 'ai_suggestion';
+        }
+      },
+      reasoning: {
+        type: String,
+        required: function () {
+          return this.type === 'ai_suggestion';
+        }
+      }
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -82,4 +96,4 @@ RecommendationSchema.index({ userId: 1 });
 RecommendationSchema.index({ type: 1 });
 RecommendationSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Recommendation', RecommendationSchema); 
+module.exports = mongoose.model('Recommendation', RecommendationSchema);
