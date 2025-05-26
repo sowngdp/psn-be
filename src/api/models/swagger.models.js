@@ -190,4 +190,4 @@
  *           type: boolean
  *         createdBy:
  *           type: string
- */ 
+ */

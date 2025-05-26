@@ -12,6 +12,7 @@ const styleRuleRoutes = require('./style-rule.routes');
 const recommendationRoutes = require('./recommendation.routes');
 const itemUploadRoutes = require('./item-upload.route');
 const weatherRoutes = require('./weather.routes');
+const chatRoutes = require('./chat.routes');
 
 // Đăng ký routes
 router.use('/auth', authRoutes);
@@ -22,5 +23,6 @@ router.use('/style-rules', styleRuleRoutes);
 router.use('/recommendations', recommendationRoutes);
 router.use('/item-uploads', itemUploadRoutes);
 router.use('/weather', weatherRoutes);
+router.use('/chat', chatRoutes);
 
 module.exports = router;
