@@ -1,0 +1,1481 @@
+{
+  "info": {
+    "_postman_id": "ecf6dab2-b8dd-4e0c-8b4e-5afeaed0afda",
+    "name": "PSN Backend API",
+    "description": "API collection for Personal Style Network (PSN) Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Authentication and user management endpoints",
+      "item": [
+        {
+          "name": "Sign Up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"{{testUserName}}\",\n    \"email\": \"{{testUserEmail}}\",\n    \"password\": \"{{testUserPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "signup"
+              ]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.metadata && responseJson.metadata.tokens) {",
+                  "    pm.environment.set('accessToken', responseJson.metadata.tokens.accessToken);",
+                  "    pm.environment.set('refreshToken', responseJson.metadata.tokens.refreshToken);",
+                  "    pm.environment.set('userId', responseJson.metadata.user.userId);",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{testUserEmail}}\",\n    \"password\": \"{{testUserPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with email and password"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.metadata) {",
+                  "    pm.environment.set('accessToken', responseJson.metadata.accessToken);",
+                  "    pm.environment.set('refreshToken', responseJson.metadata.refreshToken);",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout and invalidate tokens"
+          },
+          "response": []
+        },
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{testUserEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/request-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "request-reset"
+              ]
+            },
+            "description": "Request password reset email"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"{{resetToken}}\",\n    \"password\": \"{{newPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Reset password with token"
+          },
+          "response": []
+        },
+        {
+          "name": "Google Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"idToken\": \"{{googleIdToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "google"
+              ]
+            },
+            "description": "Login with Google ID token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "description": "User profile and management",
+      "item": [
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            },
+            "description": "Get current user profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Name\",\n    \"bodyMetrics\": {\n        \"height\": 170,\n        \"weight\": 65,\n        \"bodyType\": \"athletic\"\n    },\n    \"stylePreferences\": {\n        \"preferredColors\": [\"blue\", \"black\"],\n        \"styleTypes\": [\"casual\", \"formal\"]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            },
+            "description": "Update user profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Link Google Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"idToken\": \"{{googleIdToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/link/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "link",
+                "google"
+              ]
+            },
+            "description": "Link Google account"
+          },
+          "response": []
+        },
+        {
+          "name": "Unlink Provider",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/unlink/{{provider}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "unlink",
+                "{{provider}}"
+              ]
+            },
+            "description": "Unlink authentication provider"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "description": "Clothing item management",
+      "item": [
+        {
+          "name": "Create Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Item\",\n    \"category\": \"top\",\n    \"color\": \"blue\",\n    \"pattern\": \"solid\",\n    \"brand\": \"Test Brand\",\n    \"season\": \"summer\",\n    \"occasion\": [\"casual\"],\n    \"imageUrl\": \"{{testImageUrl}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "items"
+              ]
+            },
+            "description": "Create a new clothing item"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/items?page=1&limit=20&category=top",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "items"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "category",
+                  "value": "top"
+                }
+              ]
+            },
+            "description": "Get all items for current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Item by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "items",
+                "{{itemId}}"
+              ]
+            },
+            "description": "Get item by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Item\",\n    \"color\": \"red\",\n    \"brand\": \"Updated Brand\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "items",
+                "{{itemId}}"
+              ]
+            },
+            "description": "Update item"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "items",
+                "{{itemId}}"
+              ]
+            },
+            "description": "Delete item"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Item Metadata",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/items/metadata/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "items",
+                "metadata",
+                "all"
+              ]
+            },
+            "description": "Get all metadata categories for items"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Item Uploads",
+      "description": "Item image upload endpoints",
+      "item": [
+        {
+          "name": "Process Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/path/to/your/image.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/item-uploads/process-image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "item-uploads",
+                "process-image"
+              ]
+            },
+            "description": "Upload and process an item image (remove background)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Outfits",
+      "description": "Outfit management",
+      "item": [
+        {
+          "name": "Create Outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Outfit\",\n    \"description\": \"My first test outfit\",\n    \"season\": \"summer\",\n    \"occasion\": \"casual\",\n    \"tags\": [\"vacation\", \"beach\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/outfits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits"
+              ]
+            },
+            "description": "Create a new outfit"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Outfits",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/outfits?page=1&limit=20&season=summer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "season",
+                  "value": "summer"
+                }
+              ]
+            },
+            "description": "Get all outfits for current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Outfit by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/outfits/{{outfitId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "{{outfitId}}"
+              ]
+            },
+            "description": "Get outfit by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Outfit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Outfit\",\n    \"description\": \"Updated outfit description\",\n    \"occasion\": \"formal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/outfits/{{outfitId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "{{outfitId}}"
+              ]
+            },
+            "description": "Update outfit"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Outfit",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/outfits/{{outfitId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "{{outfitId}}"
+              ]
+            },
+            "description": "Delete outfit"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Outfit as Worn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"date\": \"{{$isoTimestamp}}\",\n    \"event\": \"Going out with friends\",\n    \"notes\": \"Was comfortable and got compliments\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/outfits/{{outfitId}}/worn",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "{{outfitId}}",
+                "worn"
+              ]
+            },
+            "description": "Mark outfit as worn"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item to Outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"itemId\": \"{{itemId}}\",\n    \"position\": \"top\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/outfits/{{outfitId}}/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "{{outfitId}}",
+                "items"
+              ]
+            },
+            "description": "Add item to outfit"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Item from Outfit",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/outfits/{{outfitId}}/items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "{{outfitId}}",
+                "items",
+                "{{itemId}}"
+              ]
+            },
+            "description": "Remove item from outfit"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Outfit Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/outfits/recommendations?occasion=casual&weather=sunny&season=summer&limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "recommendations"
+              ],
+              "query": [
+                {
+                  "key": "occasion",
+                  "value": "casual"
+                },
+                {
+                  "key": "weather",
+                  "value": "sunny"
+                },
+                {
+                  "key": "season",
+                  "value": "summer"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get outfit recommendations based on criteria"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Outfit Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/outfits/statistics?period=month",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "outfits",
+                "statistics"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "month"
+                }
+              ]
+            },
+            "description": "Get statistics about outfit usage"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recommendations",
+      "description": "Outfit recommendations",
+      "item": [
+        {
+          "name": "Create Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"weather\",\n    \"context\": {\n        \"weather\": {\n            \"temperature\": 25,\n            \"condition\": \"sunny\"\n        },\n        \"location\": {\n            \"city\": \"Ho Chi Minh City\"\n        }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recommendations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recommendations"
+              ]
+            },
+            "description": "Create a recommendation request"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recommendations?page=1&limit=10&type=weather",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recommendations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "type",
+                  "value": "weather"
+                }
+              ]
+            },
+            "description": "Get all recommendations for current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommendation by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/recommendations/{{recommendationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recommendations",
+                "{{recommendationId}}"
+              ]
+            },
+            "description": "Get recommendation by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Recommendation Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rating\": 5,\n    \"comment\": \"Great recommendation!\",\n    \"selectedOutfitId\": \"{{outfitId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/recommendations/{{recommendationId}}/feedback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "recommendations",
+                "{{recommendationId}}",
+                "feedback"
+              ]
+            },
+            "description": "Update feedback for a recommendation"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Style Rules",
+      "description": "Style rules management",
+      "item": [
+        {
+          "name": "Create Style Rule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Color Combination Rule\",\n    \"description\": \"Rule for matching colors\",\n    \"ruleType\": \"color_combination\",\n    \"conditions\": [\n        {\n            \"attribute\": \"color\",\n            \"operator\": \"equals\",\n            \"value\": \"blue\"\n        }\n    ],\n    \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/style-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "style-rules"
+              ]
+            },
+            "description": "Create a new style rule"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Style Rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/style-rules?ruleType=color_combination",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "style-rules"
+              ],
+              "query": [
+                {
+                  "key": "ruleType",
+                  "value": "color_combination"
+                }
+              ]
+            },
+            "description": "Get style rules"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Style Rule by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/style-rules/{{styleRuleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "style-rules",
+                "{{styleRuleId}}"
+              ]
+            },
+            "description": "Get style rule by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Style Rule",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Color Rule\",\n    \"description\": \"Updated rule for matching colors\",\n    \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/style-rules/{{styleRuleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "style-rules",
+                "{{styleRuleId}}"
+              ]
+            },
+            "description": "Update style rule"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Style Rule",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/style-rules/{{styleRuleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "style-rules",
+                "{{styleRuleId}}"
+              ]
+            },
+            "description": "Delete style rule"
+          },
+          "response": []
+        },
+        {
+          "name": "Evaluate Outfit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"outfitId\": \"{{outfitId}}\",\n    \"ruleTypes\": [\"color_combination\", \"occasion\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/style-rules/evaluate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "style-rules",
+                "evaluate"
+              ]
+            },
+            "description": "Evaluate outfit against style rules"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Weather",
+      "description": "Weather information and recommendations",
+      "item": [
+        {
+          "name": "Get Current Weather",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/weather/current?city=Ho Chi Minh City",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "weather",
+                "current"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Ho Chi Minh City"
+                }
+              ]
+            },
+            "description": "Get current weather information by city"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Weather Forecast",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/weather/forecast?city=Ho Chi Minh City&days=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "weather",
+                "forecast"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Ho Chi Minh City"
+                },
+                {
+                  "key": "days",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get weather forecast"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Outfits for Weather",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/weather/outfits?city=Ho Chi Minh City",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "weather",
+                "outfits"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Ho Chi Minh City"
+                }
+              ]
+            },
+            "description": "Get outfit recommendations for current weather"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "description": "AI Chat functionality",
+      "item": [
+        {
+          "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.metadata && responseJson.metadata.chatId) {",
+                  "    pm.environment.set('chatId', responseJson.metadata.chatId);",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Hello! Can you help me create a casual outfit for summer?\",\n    \"chatId\": \"{{chatId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/message",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "message"
+              ]
+            },
+            "description": "Send a message to AI and receive response"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Chat History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/history?limit=10&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get chat history for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Chat",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/{{chatId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "{{chatId}}"
+              ]
+            },
+            "description": "Get details of a specific chat conversation"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Chat History",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "history"
+              ]
+            },
+            "description": "Clear all chat history for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Specific Chat",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chat/history?chatId={{chatId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "chatId",
+                  "value": "{{chatId}}"
+                }
+              ]
+            },
+            "description": "Clear specific chat conversation"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+} 
