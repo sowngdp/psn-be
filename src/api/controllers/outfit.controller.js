@@ -67,12 +67,14 @@ class OutfitController {
         }
       }
 
-      const outfits = await OutfitService.findUserOutfits({
-        userId,
+      const outfits = await OutfitService.getAllOutfits({
+        ownerId: userId,
         page: pageNum,
         limit: limitNum,
         sort,
-        filter: filterOptions
+        filter: filterOptions,
+        season,
+        occasion
       });
 
       // Thêm pagination headers

@@ -67,6 +67,11 @@ const initServer = async () => {
       });
     });
 
+    // Health check endpoint
+    app.get('/health', (req, res) => {
+      res.json({ status: 'OK', timestamp: new Date().toISOString() });
+    });
+
     // Xử lý lỗi 404
     app.use((req, res, next) => {
       const error = new Error('Không tìm thấy');

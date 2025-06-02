@@ -45,29 +45,56 @@ class OutfitService {
   }
   
   // Lấy tất cả trang phục của người dùng
-  static async getAllOutfits({ ownerId, season, occasion, inCloset, limit, page }) {
+  static async getAllOutfits({ ownerId, season, occasion, inCloset, limit = 20, page = 1, sort }) {
     const filter = { ownerId };
-    
-    // Thêm các bộ lọc nếu được cung cấp
     if (season) filter.season = season;
     if (occasion) filter.occasion = occasion;
     if (inCloset !== undefined) filter.inCloset = inCloset;
     
-    // Phân trang
-    const options = {
-      limit: parseInt(limit) || 20,
-      page: parseInt(page) || 1,
-      sort: { lastWorn: -1, updatedAt: -1 },
-      populate: {
-        path: 'items.itemId',
-        select: 'name category color imageUrl'
+    const skip = (page - 1) * limit;
+    
+    // Xác định thứ tự sắp xếp
+    let sortOption = { createdAt: -1 }; // Mặc định: mới nhất trước
+    if (sort) {
+      switch(sort) {
+        case 'name':
+          sortOption = { name: 1 };
+          break;
+        case 'name_desc':
+          sortOption = { name: -1 };
+          break;
+        case 'wearCount':
+          sortOption = { wearCount: -1 };
+          break;
+        case 'lastWorn':
+          sortOption = { lastWorn: -1 };
+          break;
+        case 'ctime_asc':
+          sortOption = { createdAt: 1 };
+          break;
+        default:
+          sortOption = { createdAt: -1 }; // mặc định nếu sort không hợp lệ
       }
+    }
+    
+    const [outfits, totalCount] = await Promise.all([
+      outfitModel.find(filter)
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      outfitModel.countDocuments(filter)
+    ]);
+    
+    return {
+      docs: outfits,
+      totalDocs: totalCount,
+      limit: parseInt(limit),
+      totalPages: Math.ceil(totalCount / limit),
+      page: parseInt(page),
+      hasNextPage: page < Math.ceil(totalCount / limit),
+      hasPrevPage: page > 1
     };
-    
-    // Thực hiện truy vấn
-    const outfits = await outfitModel.paginate(filter, options);
-    
-    return outfits;
   }
   
   // Lấy thông tin chi tiết trang phục
