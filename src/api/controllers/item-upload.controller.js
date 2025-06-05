@@ -2,6 +2,7 @@
 
 const BackgroundRemovalService = require('../../services/background-removal.service');
 const ItemService = require('../../services/item.service');
+const GeminiService = require('../../services/gemini.service');
 const { CREATED, OK } = require('../../core/success.response');
 const { BadRequestError, InternalServerError } = require('../../core/error.response');
 const logger = require('../../utils/logger');
@@ -164,9 +165,12 @@ class ItemUploadController {
       if (!req.file) {
         throw new BadRequestError('Không có file nào được tải lên');
       }
+      
       logger.info(`Processing image only: ${req.file.originalname}, size: ${req.file.size} bytes`);
+      
       let processedImageBuffer;
       let backgroundRemoved = true;
+      
       try {
         processedImageBuffer = await BackgroundRemovalService.removeBackground(req.file.buffer);
       } catch (bgError) {
@@ -174,29 +178,51 @@ class ItemUploadController {
         processedImageBuffer = req.file.buffer;
         backgroundRemoved = false;
       }
+      
       if (processedImageBuffer === req.file.buffer) {
         backgroundRemoved = false;
         logger.warn('Using original image (background removal not applied)');
       }
+      
       logger.info('Saving processed image to Firebase...');
       const imageExtension = 'png';
       let imageUrl;
+      
       try {
         imageUrl = await BackgroundRemovalService.saveImage(processedImageBuffer, imageExtension);
       } catch (storageError) {
         logger.error('Error saving image to Firebase:', storageError);
         throw new InternalServerError('Failed to save processed image to Firebase');
       }
+      
+      // Phân tích ảnh với Gemini AI để tạo metadata
+      let itemMetadata = null;
+      try {
+        logger.info('Analyzing image with Gemini AI...');
+        itemMetadata = await GeminiService.analyzeItemImage(
+          processedImageBuffer,
+          req.file.mimetype || 'image/png'
+        );
+        logger.info('Gemini analysis completed successfully');
+      } catch (geminiError) {
+        logger.error('Error analyzing image with Gemini:', geminiError);
+        // Không throw error, chỉ log để API vẫn trả về imageUrl
+        // itemMetadata sẽ là null nếu Gemini phân tích thất bại
+      }
+      
       logger.info(`Image processed successfully: ${imageUrl}`);
+      
       return new OK({
         message: backgroundRemoved
-          ? 'Image processed successfully with background removed'
-          : 'Image processed successfully (background removal skipped)',
+          ? 'Image processed successfully with background removed and AI analysis'
+          : 'Image processed successfully (background removal skipped) with AI analysis',
         metadata: {
           imageUrl: imageUrl,
-          backgroundRemoved: backgroundRemoved
+          backgroundRemoved: backgroundRemoved,
+          aiMetadata: itemMetadata
         }
       }).send(res);
+      
     } catch (error) {
       logger.error('Error in processImageOnly:', error);
       next(error);

@@ -25,7 +25,7 @@ const ItemSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Category is required'],
       enum: {
-        values: ['top', 'bottom', 'outerwear', 'dress', 'footwear', 'accessory', 'other'],
+        values: ['top', 'bottom', 'outerwear', 'dress', 'footwear', 'accessories', 'other'],
         message: '{VALUE} is not a valid category'
       },
       index: true

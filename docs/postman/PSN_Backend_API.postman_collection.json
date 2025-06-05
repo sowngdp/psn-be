@@ -579,7 +579,7 @@
                 "process-image"
               ]
             },
-            "description": "Upload and process an item image (remove background)"
+            "description": "Upload and process an item image (remove background + AI analysis with Gemini). Returns imageUrl and detailed AI metadata about the clothing item."
           },
           "response": []
         }

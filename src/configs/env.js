@@ -55,6 +55,9 @@ const env = {
   OPENAI_MAX_TOKENS: parseInt(process.env.OPENAI_MAX_TOKENS || '2048'),
   OPENAI_TEMPERATURE: parseFloat(process.env.OPENAI_TEMPERATURE || '0.7'),
 
+  // Gemini AI
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+
   // API
   API_VERSION: 'v1',
   UPLOAD_DIR: './uploads'
