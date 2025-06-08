@@ -10,7 +10,7 @@ class ItemController {
   static async createItem(req, res, next) {
     try {
       // Validate dữ liệu đầu vào
-      const { name, category } = req.body;
+      const { name, category} = req.body;
       if (!name || !name.trim()) {
         throw new ValidationError('Tên vật phẩm không được để trống');
       }

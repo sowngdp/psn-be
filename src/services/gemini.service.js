@@ -137,30 +137,19 @@ Phân tích chi tiết món đồ thời trang trong ảnh này và trả về t
 {
   "category": "Danh mục chính - PHẢI chọn 1 trong: top, bottom, outerwear, dress, footwear, accessory, other",
   "subCategory": "Danh mục phụ cụ thể (áo thun, quần jean, váy maxi, etc.)",
-  "colors": {
-    "primary": "Màu chính",
-    "secondary": ["Màu phụ nếu có"],
-    "pattern": "Mô tả họa tiết nếu có"
-  },
+  "colors": "màu chính",
   "style": "Phong cách (casual, formal, sporty, vintage, etc.)",
   "material": {
     "type": "Loại vải/chất liệu có thể nhận diện được",
     "texture": "Kết cấu (smooth, rough, knitted, etc.)",
     "thickness": "Độ dày (thin, medium, thick)"
   },
-  "features": {
-    "sleeves": "Kiểu tay áo (nếu là áo)",
-    "neckline": "Kiểu cổ áo (nếu là áo)",
-    "length": "Độ dài (short, medium, long)",
-    "fit": "Kiểu dáng (slim, regular, loose, oversized)",
-    "closure": "Kiểu khóa/cài (zipper, buttons, none, etc.)",
-    "pockets": "Có túi hay không (true/false)"
-  },
-  "season": ["Mùa phù hợp - chọn từ: spring, summer, fall, winter"],
-  "occasions": ["Dịp phù hợp - chọn từ: casual, work, party, sport, etc."],
-  "tags": ["Các từ khóa mô tả món đồ"],
-  "description": "Mô tả chi tiết về món đồ bằng tiếng Việt",
-  "confidence": "Độ tin cậy phân tích (0-100)"
+
+  "season": ["1 Mùa phù hợp nhất - chọn từ: spring, summer, fall, winter"],
+  "occasion": "1 Dịp phù hợp nhất - chọn từ: casual, work, party, sport, etc.",
+  "positions": "Vị trí của món đồ trong ảnh (như top-left, top-right, top-center, bottom-left, bottom-right, bottom-center, middle-left, middle-right, middle-center)",
+  "description": "Mô tả ngắn về món đồ bằng tiếng Việt",
+  "embedText": "văn bản mô tả tất cả các chi tiết của món đồ màu sắc, kiểu dáng, chất liệu,các thời tiết ,các mùa có thể sử dụng ,các dịp sử dụng, vị trí, các tính năng đặt biệt, style, category, subcategory, v.v.",
 }
 
 LƯU Ý QUAN TRỌNG:

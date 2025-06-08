@@ -26,13 +26,14 @@ const CACHE_TTLS = {
 class ItemService {
   // Tạo mới item
   static async createItem(itemData) {
-    // Kiểm tra và làm sạch dữ liệu
-    if (!itemData.name || !itemData.category) {
-      throw new BadRequestError('Tên và danh mục vật phẩm là bắt buộc');
-    }
+   
 
     const itemRepository = new ItemRepository();
+    const {aiMeta,...payload} = itemData;
+    payload.embedText = aiMeta?.embedText || '';
+    payload.embedding = aiMeta?.embedding || [];
     const newItem = await itemRepository.create(itemData);
+    // todo: generate embedding from text if  provided
     return newItem;
   }
 
