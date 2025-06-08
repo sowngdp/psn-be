@@ -416,4 +416,48 @@ router.post('/:id/items', authentication, OutfitController.addItemToOutfit);
  */
 router.delete('/:outfitId/items/:itemId', authentication, OutfitController.removeItemFromOutfit);
 
+/**
+ * @swagger
+ * /outfits/compose:
+ *   post:
+ *     summary: Ghép nhiều ảnh vật phẩm vào một ảnh tổng hợp
+ *     tags: [Outfits]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               properties:
+ *                 imageUrl:
+ *                   type: string
+ *                   description: Đường dẫn local hoặc link ảnh (http/https)
+ *                 position:
+ *                   type: string
+ *                   enum: [top-left, top-center, top-right, middle-left, middle-center, middle-right, bottom-left, bottom-center, bottom-right]
+ *                   description: Vị trí ghép ảnh lên nền
+ *               required:
+ *                 - imageUrl
+ *                 - position
+ *     responses:
+ *       200:
+ *         description: Ảnh đã ghép thành công (PNG)
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.post('/compose', authentication, OutfitController.composeItemImage);
+
 module.exports = router; 

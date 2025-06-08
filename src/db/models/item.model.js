@@ -204,10 +204,8 @@ const ItemSchema = new mongoose.Schema(
     },
     embedding: {
       type: [Number],
-      validate: {
    
         message: 'Embedding must be an array of 1536 numbers'
-      }
     }
 
   },

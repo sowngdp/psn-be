@@ -32,6 +32,7 @@ class ItemService {
     const {aiMeta,...payload} = itemData;
     payload.embedText = aiMeta?.embedText || '';
     payload.embedding = aiMeta?.embedding || [];
+    payload.aiMeta = aiMeta || {};
     const newItem = await itemRepository.create(itemData);
     // todo: generate embedding from text if  provided
     return newItem;
