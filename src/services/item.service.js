@@ -5,6 +5,7 @@ const outfitModel = require('../db/models/outfit.model');
 const { BadRequestError, NotFoundError, ForbiddenError } = require('../core/error.response');
 const { Types } = require('mongoose');
 const FirebaseStorage = require('../helpers/firebase.storage');
+const firebaseService = require('./firebase.service');
 const cache = require('../utils/cache');
 
 // Cache keys
@@ -96,7 +97,7 @@ class ItemService {
     
     // Kiểm tra xem item có trong outfit nào không
     const outfitWithItem = await outfitModel.findOne({
-      'items.itemId': Types.ObjectId(itemId)
+      'items.itemId': new Types.ObjectId(itemId)
     });
     
     if (outfitWithItem) {
@@ -110,8 +111,7 @@ class ItemService {
     // Xóa hình ảnh từ Firebase Storage nếu có
     if (item.imageUrl) {
       try {
-        const firebaseStorage = FirebaseStorage.getInstance();
-        await firebaseStorage.deleteImage(item.imageUrl);
+        await firebaseService.deleteFile(item.imageUrl);
       } catch (error) {
         console.error('Lỗi khi xóa hình ảnh:', error);
         // Tiếp tục xóa item dù có lỗi khi xóa hình ảnh
