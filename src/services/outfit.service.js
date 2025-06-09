@@ -22,14 +22,17 @@ class OutfitService {
     
     // Nếu có file ảnh, tải lên Firebase Storage
     let imageUrl = null;
+     const firebaseStorage = FirebaseStorage.getInstance();
     if (imageFile) {
       try {
-        const firebaseStorage = FirebaseStorage.getInstance();
+       
         imageUrl = await firebaseStorage.uploadImage(imageFile);
       } catch (error) {
         console.error('Lỗi khi tải lên hình ảnh outfit:', error);
         // Vẫn tiếp tục tạo outfit dù có lỗi khi tải lên hình ảnh
       }
+    }else if (outfitData.imageBase64) {
+      imageUrl = await firebaseStorage.uploadImageBase64(outfitData.imageBase64);
     }
     
     // Tạo outfit mới
@@ -43,7 +46,7 @@ class OutfitService {
     
     return newOutfit;
   }
-  
+
   // Lấy tất cả trang phục của người dùng
   static async getAllOutfits({ ownerId, season, occasion, inCloset, limit = 20, page = 1, sort }) {
     const filter = { ownerId };
@@ -109,7 +112,6 @@ class OutfitService {
       throw new NotFoundError('Không tìm thấy trang phục');
     }
     
-    return outfit;
   }
   
   // Cập nhật thông tin trang phục

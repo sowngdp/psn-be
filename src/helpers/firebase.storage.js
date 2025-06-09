@@ -135,6 +135,28 @@ class FirebaseStorage {
       throw error;
     }
   }
+  async uploadImageBase64(base64String, fileName) {
+    if(!fileName) {
+      fileName = `${uuidv4()}.png`; // Default to PNG if no file name provided
+    }
+    try {
+      const buffer = Buffer.from(base64String, 'base64');
+      const uniqueFileName = `${uuidv4()}-${fileName}`;
+      const folderPath = "Hodophile";
+      const storageRef = ref(this.storage, `${folderPath}/${uniqueFileName}`);
+      const metadata = {
+        contentType: 'image/png', // Assuming PNG, adjust if needed
+      };
+      await uploadBytes(storageRef, buffer, metadata);
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log("Base64 image uploaded successfully:", downloadURL);
+      return downloadURL;
+    }
+    catch (error) {
+      console.error("Error uploading base64 image:", error);
+      return null;
+    }
+  }
 }
 
 module.exports = FirebaseStorage;

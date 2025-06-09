@@ -37,6 +37,7 @@ class ItemService {
     // todo: generate embedding from text if  provided
     return newItem;
   }
+  
 
   // Lấy danh sách item của người dùng
   static async findUserItems({ userId, page = 1, limit = 20, filter = {}, sort = 'ctime' }) {

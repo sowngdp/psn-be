@@ -31,17 +31,23 @@ const OutfitController = require('../controllers/outfit.controller');
  *             properties:
  *               name:
  *                 type: string
- *               description:
- *                 type: string
- *               season:
- *                 type: string
- *                 enum: [spring, summer, fall, winter, all]
- *               occasion:
- *                 type: string
- *               tags:
+ *                 description: Tên trang phục
+ *               items:
  *                 type: array
  *                 items:
- *                   type: string
+ *                   type: object
+ *                   required:
+ *                     - itemId
+ *                   properties:
+ *                     itemId:
+ *                       type: string
+ *                 description: Danh sách itemId trong trang phục
+ *               imageBase64:
+ *                 type: string
+ *                 description: Ảnh trang phục ở định dạng base64
+ *               description:
+ *                 type: string
+ *                 description: Mô tả trang phục
  *     responses:
  *       201:
  *         description: Tạo trang phục thành công
