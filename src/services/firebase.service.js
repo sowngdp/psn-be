@@ -109,6 +109,38 @@ class FirebaseService {
             return false;
         }
     }
+
+    async updateFile(fileUrl, buffer, options = {}) {
+        try {
+            const {
+                fileName = uuidv4(),
+                fileExtension = 'jpg',
+                contentType = 'image/jpeg',
+                folder = 'items'
+            } = options;
+
+            const fullFileName = `${fileName}.${fileExtension}`;
+            const storageRef = ref(this.storage, `${folder}/${fullFileName}`);
+
+            // Create file metadata including the content type  
+            const metadata = {
+                contentType: contentType,
+            };
+
+            // Upload the file
+            const snapshot = await uploadBytes(storageRef, buffer, metadata);
+
+            // Get download URL
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            logger.info(`File updated successfully. URL: ${downloadURL}`);
+
+            return downloadURL;
+        } catch (error) {
+            logger.error('Error updating file in Firebase Storage:', error);
+            throw error;
+        }
+    }
 }
 
 // Create a singleton instance

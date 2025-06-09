@@ -1,9 +1,11 @@
-const sharp = require('sharp');
+
+
 const axios = require('axios');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const sharp = require('sharp');
 
 async function getImageInput(imageUrl) {
   if (/^https?:\/\//.test(imageUrl)) {
@@ -14,7 +16,7 @@ async function getImageInput(imageUrl) {
   }
 }
 
-export async function composeImages(imageList, canvasWidth = null, canvasHeight = null) {
+async function composeImages(imageList, canvasWidth = null, canvasHeight = null) {
   const imageInputs = await Promise.all(imageList.map(item => getImageInput(item.imageUrl)));
 
   const metadatas = await Promise.all(
@@ -80,3 +82,7 @@ export async function composeImages(imageList, canvasWidth = null, canvasHeight 
     throw new Error('Failed to create image file');
   }
 }
+
+module.exports = {
+  composeImages
+};
