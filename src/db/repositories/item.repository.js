@@ -160,6 +160,12 @@ class ItemRepository extends BaseRepository {
       projection
     });
   }
+  async findAllWhereEmbeddingIsNullAndEmbedTextIsNotEmpty() {
+    return this.model.find({
+      embedding: { $exists: false },
+      embedText: { $exists: true, $ne: '' }
+    });
+  }
 
   /**
    * Tìm item thuộc về người dùng cụ thể
