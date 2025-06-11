@@ -8,7 +8,7 @@ var LLM_REGISTRY = createProviderRegistry({
         apiKey: process.env.OPENAI_API_KEY,
     }),
     google: createGoogleGenerativeAI({
-        apiKey: process.env.GOOGLE_API_KEY,
+        apiKey: process.env.GEMINI_API_KEY,
     }),
     mistral: createMistral({
         apiKey: process.env.MISTRAL_API_KEY,

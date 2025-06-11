@@ -157,6 +157,28 @@ class FirebaseStorage {
       return null;
     }
   }
+  async uploadFromLocalPath(localFilePath,contentType='application/octet-stream') {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const fileBuffer = fs.readFileSync(localFilePath);
+      const fileName = path.basename(localFilePath);
+      const uniqueFileName = `${uuidv4()}-${fileName}`;
+      const folderPath = "Hodophile";
+      const storageRef = ref(this.storage, `${folderPath}/${uniqueFileName}`);
+      const metadata = {
+        contentType: contentType || 'application/octet-stream', // Default to binary if not specified
+      };
+      await uploadBytes(storageRef, fileBuffer, metadata);
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log("Local file uploaded successfully:", downloadURL);
+      return downloadURL;
+    }
+    catch (error) {
+      console.error("Error uploading local file:", error);
+      return null;
+    }
+  }
 }
 
 module.exports = FirebaseStorage;

@@ -1,6 +1,7 @@
 'use strict';
 
 const RecommendationService = require('../../services/recommendation.service');
+const {getAllUserRecommendations} = require('../../services/gen-outfit');
 const { OK, CREATED } = require('../../core/success.response');
 
 class RecommendationController {
@@ -31,12 +32,7 @@ class RecommendationController {
       const userId = req.user.userId;
       const { page, limit, type } = req.query;
       
-      const recommendations = await RecommendationService.findUserRecommendations({
-        userId,
-        page: parseInt(page) || 1,
-        limit: parseInt(limit) || 20,
-        type
-      });
+      const recommendations = await getAllUserRecommendations(userId)
       
       return new OK({
         message: 'Lấy danh sách đề xuất thành công',

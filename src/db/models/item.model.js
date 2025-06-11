@@ -200,12 +200,10 @@ const ItemSchema = new mongoose.Schema(
     embedText: {
       type: String,
       trim: true,
-      maxlength: [3000, 'Embed text cannot be more than 3000 characters']
     },
     embedding: {
       type: [Number],
-   
-        message: 'Embedding must be an array of 1536 numbers'
+      message: 'Embedding must be an array of 1536 numbers'
     }
 
   },

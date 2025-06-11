@@ -6,6 +6,8 @@ const { BadRequestError, NotFoundError } = require('../core/error.response');
 const mongoose = require('mongoose');
 const FirebaseStorage = require('../helpers/firebase.storage');
 const { Types } = require('mongoose');
+const { composeImages } = require('./image.service');
+const firebaseService = require('./firebase.service');
 
 class OutfitService {
   // Tạo trang phục mới với hỗ trợ hình ảnh tổng hợp
@@ -19,22 +21,20 @@ class OutfitService {
     if (!outfitData.items) {
       outfitData.items = [];
     }
-    
-    // Nếu có file ảnh, tải lên Firebase Storage
-    let imageUrl = null;
-     const firebaseStorage = FirebaseStorage.getInstance();
-    if (imageFile) {
-      try {
-       
-        imageUrl = await firebaseStorage.uploadImage(imageFile);
-      } catch (error) {
-        console.error('Lỗi khi tải lên hình ảnh outfit:', error);
-        // Vẫn tiếp tục tạo outfit dù có lỗi khi tải lên hình ảnh
-      }
-    }else if (outfitData.imageBase64) {
-      imageUrl = await firebaseStorage.uploadImageBase64(outfitData.imageBase64);
+    const itemIds = outfitData.items.map(item => item.itemId);
+    // Kiểm tra tất cả items tồn tại và thuộc về người dùng
+    const items = await itemModel.find({
+      _id: { $in: itemIds },
+      ownerId: outfitData.ownerId,
+    });
+    if (items.length !== itemIds.length) {
+      throw new BadRequestError('Một số vật phẩm không tồn tại hoặc không thuộc về bạn');
     }
+    console.log('Items found:', items.length);
+    const fileImagePath = await composeImages(items,1000,1000);
     
+    let imageUrl = await firebaseService.uploadFromLocalPath(fileImagePath,'image/png');
+    console.log('Image URL:', imageUrl);
     // Tạo outfit mới
     const newOutfit = await outfitModel.create({
       ...outfitData,
