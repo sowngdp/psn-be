@@ -4,6 +4,8 @@ const { generateText } = require("ai");
 const { LLM_REGISTRY } = require("../utils/llm-registry");
 const { composeImagesUseLLM } = require("./image.service");
 const firebaseService = require("./firebase.service");
+const { embedMany } = require("ai");
+const {getDaNangWeatherEmbed} = require("../utils/constants/wmo")
 
 function cosineSimilarity(vecA, vecB) {
 	const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
@@ -14,6 +16,18 @@ function cosineSimilarity(vecA, vecB) {
 
 async function generateOutfitRecommendation(userId) {
 	try {
+		// if userId is have recommendation then
+		const existingRecommendation = await recommendationModel.findOne({
+			userId,
+			type: "ai_suggestion",
+			status: "completed",
+		});
+		if (existingRecommendation) {
+			console.warn(
+				`User ${userId} already has a completed recommendation. Skipping...`
+			);
+			return;
+		}
 		const userItems = (
 			await itemModel.find({ ownerId: userId }).lean()
 		).filter((item) => item.embedding && item.category && item.embedText);
@@ -146,16 +160,95 @@ async function generateImageForAllRecommendations() {
         }
     }
 }
+// async function getAllUserRecommendations(userId) {
+//     // get recommendations and join with items to get item details
+//     const recommendations = await recommendationModel
+//         .find({ userId, status: "completed" })
+//         .select({ embedding: 0 }) 
+//         .populate("suggestedItems.itemId", "name imageUrl category")
+//         .lean();
+	
+// 	return recommendations
+// }
 async function getAllUserRecommendations(userId) {
-    // get recommendations and join with items to get item details
+    // Lấy các embedding reference cho từng loại
+    const [weatherEmbed, workEmbed, playEmbed] = await getDaNangWeatherEmbed();
+
+    // Lấy tất cả recommendation có embedding
     const recommendations = await recommendationModel
-        .find({ userId, status: "completed" })
-        .select({ embedding: 0 }) 
+        .find({
+            userId,
+            embedding: { $exists: true, $ne: null, $not: { $size: 0 } },
+        })
+        .select({ embedding: 1, suggestedItems: 1 ,embedText: 1, imageUrl: 1, type: 1, status: 1})
         .populate("suggestedItems.itemId", "name imageUrl category")
         .lean();
-	return recommendations
+
+    if (!recommendations || recommendations.length === 0) {
+        console.warn(`No recommendations found for user ${userId}`);
+        return [];
+    }
+
+    // Hàm xử lý lọc và sắp xếp theo similarity
+    function filterAndSortBySimilarity(embedRef) {
+        return recommendations
+            .map(rec => ({
+                ...rec,
+                similarity: cosineSimilarity(rec.embedding, embedRef),
+            }))
+            .filter(rec => rec.similarity > 0.7)
+            .sort((a, b) => b.similarity - a.similarity)
+            .map(({ embedding, ...rec }) => rec); // loại bỏ embedding
+    }
+
+    // Có thể tắt log hoặc chuyển sang log.debug nếu muốn gỡ lỗi
+    // Nếu vẫn muốn log detail, thì lặp qua từng loại bên dưới
+
+    return {
+        weather: filterAndSortBySimilarity(weatherEmbed),
+        work: filterAndSortBySimilarity(workEmbed),
+        play: filterAndSortBySimilarity(playEmbed),
+    };
 }
 
+async function genEmbeddingForAllRecommendations() {
+	const recommendations = await recommendationModel
+		.find({ 
+			$or: [
+				{ embedding: { $exists: false } },
+				{ embedding: null },
+				{ embedding: [] }
+			],
+			status: "completed" 
+		})
+		.select({ embedText: 1, _id: 1 })
+		.lean();
+	for (const recommendation of recommendations) {
+		try {
+			if (!recommendation.embedText) {
+				console.warn(
+					`Recommendation ${recommendation._id} has no embedText, skipping...`
+				);
+				continue;
+			}
+			const {embeddings} = await embedMany({
+				model: LLM_REGISTRY.textEmbeddingModel(
+					"mistral.mistral-embed"
+				),
+				values: [recommendation.embedText],
+			});
+			if (!embeddings) continue;
+
+			await recommendationModel.updateOne(
+				{ _id: recommendation._id },
+				{ $set: { embedding: embeddings[0] } }
+			);
+			console.log(`Updated recommendation ${recommendation._id} with embedding`);
+		} catch (err) {
+			console.error("Failed to generate embedding for recommendation:", err);
+		}															
+	}
+}																					
 
 module.exports = {
     generateOutfitRecommendation,
@@ -173,4 +266,6 @@ module.exports = {
     },
     generateImageForAllRecommendations,
     getAllUserRecommendations,
+	// getAllUserRecommendationsByWeather,
+	genEmbeddingForAllRecommendations
 };
