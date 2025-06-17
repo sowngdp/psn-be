@@ -5,6 +5,21 @@ const router = express.Router();
 const UserController = require('../controllers/user.controller');
 const { authentication } = require('../middlewares/authentication');
 const validator = require('../middlewares/validator');
+const multer = require('multer');
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // limit to 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file ảnh'));
+    }
+  }
+});
 
 /**
  * @swagger
@@ -276,4 +291,65 @@ router.post('/link/google', authentication, validator.googleIdToken, UserControl
  */
 router.delete('/unlink/:provider', authentication, UserController.unlinkProvider);
 
-module.exports = router; 
+/**
+ * @swagger
+ * /users/name:
+ *   put:
+ *     summary: Đổi tên người dùng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Tên mới của người dùng
+ *     responses:
+ *       200:
+ *         description: Đổi tên người dùng thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.put('/name', authentication, UserController.changeUserName);
+
+/**
+ * @swagger
+ * /users/avatar:
+ *   put:
+ *     summary: Đổi avatar người dùng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - avatar
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *                 description: File ảnh avatar mới
+ *     responses:
+ *       200:
+ *         description: Cập nhật avatar thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.put('/avatar', authentication, upload.single('avatar'), UserController.changeUserAvatar);
+
+module.exports = router;

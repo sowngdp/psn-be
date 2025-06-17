@@ -3,6 +3,7 @@
 const UserService = require('../../services/user.service');
 const GoogleAuthService = require('../../services/google-auth.service');
 const { OK, CREATED } = require('../../core/success.response');
+const { BadRequestError } = require('../../core/error.response');
 
 class UserController {
   // Lấy thông tin người dùng theo ID
@@ -97,6 +98,53 @@ class UserController {
   }
 
   /**
+   * Đổi tên người dùng
+   */
+  static async changeUserName(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const { name } = req.body;
+      
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return new BadRequestError('Tên người dùng không hợp lệ').send(res);
+      }
+      
+      const updatedUser = await UserService.updateUser(userId, { name: name.trim() });
+      
+      return new OK({
+        message: 'Đổi tên người dùng thành công',
+        metadata: updatedUser
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Đổi avatar người dùng
+   */
+  static async changeUserAvatar(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      
+      // Kiểm tra file ảnh có tồn tại không
+      if (!req.file) {
+        return new BadRequestError('Không tìm thấy file ảnh').send(res);
+      }
+      
+      // Xử lý và upload file ảnh
+      const avatarUrl = await UserService.uploadUserAvatar(userId, req.file);
+      
+      return new OK({
+        message: 'Cập nhật avatar thành công',
+        metadata: { avatarUrl }
+      }).send(res);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Liên kết tài khoản Google
    */
   static async linkGoogleAccount(req, res, next) {
@@ -140,4 +188,4 @@ class UserController {
   }
 }
 
-module.exports = UserController; 
+module.exports = UserController;

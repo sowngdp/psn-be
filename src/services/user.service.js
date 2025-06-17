@@ -202,6 +202,53 @@ class UserService {
     return true;
   }
   
+  /**
+   * Upload và cập nhật avatar cho người dùng
+   * @param {string} userId - ID của người dùng
+   * @param {Object} file - File ảnh đã được upload
+   * @returns {Object} - Thông tin về avatar đã cập nhật
+   */
+  static async uploadUserAvatar(userId, file) {
+    // Kiểm tra người dùng tồn tại
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError('Không tìm thấy người dùng');
+    }
+
+    // Import các service cần thiết
+    const StorageService = require('./storage.service');
+    const ImageService = require('./image.service');
+
+    try {
+      // Tối ưu hóa ảnh trước khi upload (resize, compress)
+      const optimizedBuffer = await ImageService.optimizeImage(file.buffer, {
+        width: 400,
+        height: 400,
+        fit: 'cover',
+        format: 'webp'
+      });
+
+      // Upload ảnh lên storage (có thể là Firebase Storage hoặc dịch vụ lưu trữ khác)
+      const avatarPath = `users/${userId}/avatar-${Date.now()}.webp`;
+      const avatarUrl = await StorageService.uploadFile(avatarPath, optimizedBuffer, {
+        contentType: 'image/webp',
+        isPublic: true
+      });
+
+      // Cập nhật avatar URL vào profile người dùng
+      const updatedUser = await userModel.findByIdAndUpdate(
+        userId,
+        { $set: { avatar: avatarUrl } },
+        { new: true }
+      ).select('-password');
+
+      return { avatar: avatarUrl, user: updatedUser };
+    } catch (error) {
+      console.error('Lỗi khi xử lý avatar:', error);
+      throw new BadRequestError('Không thể xử lý file ảnh. Vui lòng thử lại.');
+    }
+  }
+
   // Tạo các hàm tiện ích
   static getInfoData(object = {}, fields = []) {
     return fields.reduce((obj, field) => {
@@ -311,4 +358,4 @@ class UserService {
   }
 }
 
-module.exports = UserService; 
+module.exports = UserService;
