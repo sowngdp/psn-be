@@ -40,7 +40,7 @@ class ItemService {
 		payload.aiMeta = aiMeta || {};
 		const newItem = await itemRepository.create(payload);
 		// todo: generate embedding from text if  provided
-		this.genEmbeddingForAllItem();
+		// this.genEmbeddingForAllItem();
 		return newItem;
 	}
 

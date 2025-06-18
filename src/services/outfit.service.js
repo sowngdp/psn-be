@@ -112,6 +112,7 @@ class OutfitService {
       throw new NotFoundError('Không tìm thấy trang phục');
     }
     
+    return outfit;
   }
   
   // Cập nhật thông tin trang phục
@@ -253,7 +254,7 @@ class OutfitService {
   }
   
   // Thêm item vào trang phục
-  static async addItemToOutfit(outfitId, userId, itemId) {
+  static async addItemToOutfit(outfitId, userId, itemId, position) {
     // Kiểm tra trang phục tồn tại và thuộc về người dùng
     const outfit = await outfitModel.findOne({
       _id: outfitId,
@@ -291,7 +292,7 @@ class OutfitService {
         $push: { 
           items: { 
             itemId,
-            position: outfit.items.length, // Vị trí mặc định là cuối danh sách
+            position: position || outfit.items.length, // Sử dụng position từ tham số hoặc cuối danh sách
             layerOrder: outfit.items.length, // Thứ tự layer mặc định
             visible: true // Item mặc định là hiển thị
           } 

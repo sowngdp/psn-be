@@ -2,10 +2,11 @@
 
 const userModel = require('../db/models/user.model');
 const userStyleProfileModel = require('../db/models/user-style-profile.model');
-const { BadRequestError, NotFoundError, AuthFailureError, ConflictError } = require('../core/error.response');
+const { BadRequestError, NotFoundError, AuthFailureError } = require('../core/error.response');
 const { Types } = require('mongoose');
 const bcrypt = require('bcryptjs');
 const JWT = require('jsonwebtoken');
+const sharp = require('sharp');
 const { JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRATION } = require('../configs/env');
 
 class UserService {
@@ -77,6 +78,20 @@ class UserService {
     const user = await userModel.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
     if (!user) throw new NotFoundError('Không tìm thấy người dùng');
     return user;
+  }
+  
+  // Lấy thông tin người dùng cùng với profile style
+  static async getUserWithProfile(userId) {
+    const user = await userModel.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
+    if (!user) throw new NotFoundError('Không tìm thấy người dùng');
+    
+    // Lấy profile style của người dùng
+    const styleProfile = await userStyleProfileModel.findOne({ userId: new Types.ObjectId(userId) });
+    
+    return {
+      ...user.toObject(),
+      styleProfile: styleProfile || null
+    };
   }
   
   // Cập nhật thông tin người dùng
@@ -216,24 +231,17 @@ class UserService {
     }
 
     // Import các service cần thiết
-    const StorageService = require('./storage.service');
-    const ImageService = require('./image.service');
+    const BackgroundRemovalService = require('./background-removal.service');
 
     try {
-      // Tối ưu hóa ảnh trước khi upload (resize, compress)
-      const optimizedBuffer = await ImageService.optimizeImage(file.buffer, {
-        width: 400,
-        height: 400,
-        fit: 'cover',
-        format: 'webp'
-      });
+      // Resize ảnh về kích thước avatar (400x400) và chuyển sang PNG
+      const resizedBuffer = await sharp(file.buffer)
+        .resize(400, 400, { fit: 'cover' })
+        .png({ quality: 90 })
+        .toBuffer();
 
-      // Upload ảnh lên storage (có thể là Firebase Storage hoặc dịch vụ lưu trữ khác)
-      const avatarPath = `users/${userId}/avatar-${Date.now()}.webp`;
-      const avatarUrl = await StorageService.uploadFile(avatarPath, optimizedBuffer, {
-        contentType: 'image/webp',
-        isPublic: true
-      });
+      // Lưu ảnh bằng BackgroundRemovalService.saveImage
+      const avatarUrl = await BackgroundRemovalService.saveImage(resizedBuffer, 'png');
 
       // Cập nhật avatar URL vào profile người dùng
       const updatedUser = await userModel.findByIdAndUpdate(

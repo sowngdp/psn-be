@@ -100,6 +100,67 @@ router.put('/profile', authentication, UserController.updateUserProfile);
 
 /**
  * @swagger
+ * /users/name:
+ *   put:
+ *     summary: Đổi tên người dùng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Tên mới của người dùng
+ *     responses:
+ *       200:
+ *         description: Đổi tên người dùng thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.put('/name', authentication, UserController.changeUserName);
+
+/**
+ * @swagger
+ * /users/avatar:
+ *   put:
+ *     summary: Đổi avatar người dùng
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - avatar
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *                 description: File ảnh avatar mới
+ *     responses:
+ *       200:
+ *         description: Cập nhật avatar thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ */
+router.put('/avatar', authentication, upload.single('avatar'), UserController.changeUserAvatar);
+
+/**
+ * @swagger
  * /users/{id}:
  *   get:
  *     summary: Lấy thông tin người dùng theo ID
@@ -290,66 +351,5 @@ router.post('/link/google', authentication, validator.googleIdToken, UserControl
  *         description: Không tìm thấy provider
  */
 router.delete('/unlink/:provider', authentication, UserController.unlinkProvider);
-
-/**
- * @swagger
- * /users/name:
- *   put:
- *     summary: Đổi tên người dùng
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 description: Tên mới của người dùng
- *     responses:
- *       200:
- *         description: Đổi tên người dùng thành công
- *       400:
- *         description: Dữ liệu không hợp lệ
- *       401:
- *         description: Không được ủy quyền
- */
-router.put('/name', authentication, UserController.changeUserName);
-
-/**
- * @swagger
- * /users/avatar:
- *   put:
- *     summary: Đổi avatar người dùng
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required:
- *               - avatar
- *             properties:
- *               avatar:
- *                 type: string
- *                 format: binary
- *                 description: File ảnh avatar mới
- *     responses:
- *       200:
- *         description: Cập nhật avatar thành công
- *       400:
- *         description: Dữ liệu không hợp lệ
- *       401:
- *         description: Không được ủy quyền
- */
-router.put('/avatar', authentication, upload.single('avatar'), UserController.changeUserAvatar);
 
 module.exports = router;

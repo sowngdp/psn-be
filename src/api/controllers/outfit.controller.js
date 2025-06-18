@@ -207,7 +207,7 @@ class OutfitController {
 				`Getting outfit details, outfitId: ${outfitId}, userId: ${userId}`
 			);
 
-			const outfit = await OutfitService.findOutfitById(outfitId, userId);
+			const outfit = await OutfitService.getOutfitById(outfitId, userId);
 
 			return new OK({
 				message: "Lấy thông tin trang phục thành công",
@@ -306,10 +306,10 @@ class OutfitController {
 				`Marking outfit as worn, outfitId: ${outfitId}, userId: ${userId}, date: ${date}, event: ${event}`
 			);
 
-			const updatedOutfit = await OutfitService.markAsWorn(
+			const updatedOutfit = await OutfitService.markOutfitAsWorn(
 				outfitId,
 				userId,
-				{ date, event, notes }
+				date
 			);
 
 			return new OK({
@@ -508,11 +508,12 @@ class OutfitController {
 				`Getting weather-appropriate outfits, userId: ${userId}, temperature: ${temperature}, condition: ${weatherCondition}`
 			);
 
-			const outfits = await OutfitService.findOutfitsForWeather(userId, {
-				temperature: temperature ? parseFloat(temperature) : undefined,
-				condition: weatherCondition,
-				limit: limitNum,
-			});
+			const outfits = await OutfitService.findOutfitsForWeather(
+				userId,
+				temperature ? parseFloat(temperature) : undefined,
+				weatherCondition,
+				limitNum
+			);
 
 			return new OK({
 				message: "Lấy trang phục phù hợp thời tiết thành công",
