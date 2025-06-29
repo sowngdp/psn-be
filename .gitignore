@@ -41,3 +41,11 @@ data/
 
 # Giữ lại tài liệu API
 !docs/api-docs.json 
+
+# Security - Keys and Credentials
+src/keys/*.key
+src/keys/*.json
+src/keys/serviceAccountKey.json
+*.pem
+*.p12
+*.pfx 
