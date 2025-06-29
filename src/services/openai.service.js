@@ -23,7 +23,7 @@ class GenAIService {
                 model:LLM_REGISTRY.languageModel("google.gemini-2.0-flash"),
                 messages: messages,
             })
-            return text;
+            return { content: text };
         } catch (error) {
             throw new BadRequestError('Failed to generate chat completion: ' + error.message);
         }
