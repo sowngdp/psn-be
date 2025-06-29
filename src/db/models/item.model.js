@@ -24,10 +24,6 @@ const ItemSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, 'Category is required'],
-      enum: {
-        values: ['top', 'bottom', 'outerwear', 'dress', 'footwear', 'accessories', 'other'],
-        message: '{VALUE} is not a valid category'
-      },
       index: true
     },
     subCategory: {
@@ -119,6 +115,10 @@ const ItemSchema = new mongoose.Schema(
       },
       index: true
     },
+    positions: {
+      type: String,
+      default: 'middle-right'
+    },
     images: [{
       url: {
         type: String,
@@ -196,7 +196,16 @@ const ItemSchema = new mongoose.Schema(
           winter: { type: Number, default: 0 }
         }
       }
+    },
+    embedText: {
+      type: String,
+      trim: true,
+    },
+    embedding: {
+      type: [Number],
+      message: 'Embedding must be an array of 1536 numbers'
     }
+
   },
   {
     timestamps: true,

@@ -109,9 +109,73 @@ class FirebaseService {
             return false;
         }
     }
+
+    async updateFile(fileUrl, buffer, options = {}) {
+        try {
+            const {
+                fileName = uuidv4(),
+                fileExtension = 'jpg',
+                contentType = 'image/jpeg',
+                folder = 'items'
+            } = options;
+
+            const fullFileName = `${fileName}.${fileExtension}`;
+            const storageRef = ref(this.storage, `${folder}/${fullFileName}`);
+
+            // Create file metadata including the content type  
+            const metadata = {
+                contentType: contentType,
+            };
+
+            // Upload the file
+            const snapshot = await uploadBytes(storageRef, buffer, metadata);
+
+            // Get download URL
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            logger.info(`File updated successfully. URL: ${downloadURL}`);
+
+            return downloadURL;
+        } catch (error) {
+            logger.error('Error updating file in Firebase Storage:', error);
+            throw error;
+        }
+    }
+
+    async uploadFromLocalPath(localPath, contentType = 'image/jpeg', folder = 'items') {
+        try {
+            const fileName = path.basename(localPath);
+            const storageRef = ref(this.storage, `${folder}/${fileName}`);
+
+            // Read the file from local path
+            const buffer = require('fs').readFileSync(localPath);
+
+            // Create file metadata including the content type
+            const metadata = {
+                contentType: contentType,
+            };
+
+            logger.info(`Uploading file from local path to Firebase Storage: ${folder}/${fileName}`);
+
+            // Upload the file
+            const snapshot = await uploadBytes(storageRef, buffer, metadata);
+
+            // Get download URL
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            logger.info(`File uploaded successfully. URL: ${downloadURL}`);
+
+            return downloadURL;
+        } catch (error) {
+            logger.error('Error uploading file from local path to Firebase Storage:', error);
+            throw error;
+        }
+    }
+    
 }
 
 // Create a singleton instance
 const firebaseService = FirebaseService.getInstance();
+
 
 module.exports = firebaseService; 

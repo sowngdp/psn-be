@@ -42,7 +42,9 @@ class AuthController {
     try {
       const { email, password } = req.body;
       const ip = req.ip || req.connection.remoteAddress;
+      console.log('IP Address:', ip, 'Email:', email, 'Password:', password);
       const userCredentials = await AuthService.login({ email, password, ip });
+
       
       return new OK({
         message: 'Đăng nhập thành công',

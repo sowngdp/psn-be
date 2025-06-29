@@ -31,17 +31,23 @@ const OutfitController = require('../controllers/outfit.controller');
  *             properties:
  *               name:
  *                 type: string
- *               description:
- *                 type: string
- *               season:
- *                 type: string
- *                 enum: [spring, summer, fall, winter, all]
- *               occasion:
- *                 type: string
- *               tags:
+ *                 description: Tên trang phục
+ *               items:
  *                 type: array
  *                 items:
- *                   type: string
+ *                   type: object
+ *                   required:
+ *                     - itemId
+ *                   properties:
+ *                     itemId:
+ *                       type: string
+ *                 description: Danh sách itemId trong trang phục
+ *               imageBase64:
+ *                 type: string
+ *                 description: Ảnh trang phục ở định dạng base64
+ *               description:
+ *                 type: string
+ *                 description: Mô tả trang phục
  *     responses:
  *       201:
  *         description: Tạo trang phục thành công
@@ -415,5 +421,49 @@ router.post('/:id/items', authentication, OutfitController.addItemToOutfit);
  *         description: Không tìm thấy trang phục hoặc vật phẩm
  */
 router.delete('/:outfitId/items/:itemId', authentication, OutfitController.removeItemFromOutfit);
+
+/**
+ * @swagger
+ * /outfits/compose:
+ *   post:
+ *     summary: Ghép nhiều ảnh vật phẩm vào một ảnh tổng hợp
+ *     tags: [Outfits]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: array
+ *             items:
+ *               type: object
+ *               properties:
+ *                 imageUrl:
+ *                   type: string
+ *                   description: Đường dẫn local hoặc link ảnh (http/https)
+ *                 position:
+ *                   type: string
+ *                   enum: [top-left, top-center, top-right, middle-left, middle-center, middle-right, bottom-left, bottom-center, bottom-right]
+ *                   description: Vị trí ghép ảnh lên nền
+ *               required:
+ *                 - imageUrl
+ *                 - position
+ *     responses:
+ *       200:
+ *         description: Ảnh đã ghép thành công (PNG)
+ *         content:
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Dữ liệu không hợp lệ
+ *       401:
+ *         description: Không được ủy quyền
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.post('/compose', authentication, OutfitController.composeItemImage);
 
 module.exports = router; 

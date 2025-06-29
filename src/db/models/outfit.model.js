@@ -6,7 +6,7 @@ const OutfitSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Outfit name is required'],
+      required: false,
       trim: true,
       maxlength: [100, 'Name cannot be more than 100 characters']
     },
@@ -18,7 +18,7 @@ const OutfitSchema = new mongoose.Schema(
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Owner ID is required'],
+      required: false,
       index: true
     },
     items: [
@@ -34,7 +34,7 @@ const OutfitSchema = new mongoose.Schema(
             values: ['top', 'bottom', 'outer', 'accessory', 'footwear', 'other'],
             message: '{VALUE} is not a valid position'
           },
-          required: [true, 'Item position is required']
+          required: false
         },
         layerOrder: {
           type: Number,
@@ -117,7 +117,7 @@ const OutfitSchema = new mongoose.Schema(
       {
         date: {
           type: Date,
-          required: true
+          required: false
         },
         occasion: {
           type: String,
@@ -144,7 +144,7 @@ const OutfitSchema = new mongoose.Schema(
     images: [{
       url: {
         type: String,
-        required: true
+        required: false
       },
       isMain: {
         type: Boolean,

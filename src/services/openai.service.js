@@ -1,24 +1,13 @@
 'use strict';
 
-const OpenAI = require('openai');
+
 const { NotFoundError, BadRequestError } = require('../core/error.response');
 const { OPENAI_API_KEY, OPENAI_MODEL, OPENAI_MAX_TOKENS, OPENAI_TEMPERATURE } = require('../configs/env');
+const { LLM_REGISTRY } = require('../utils/llm-registry');
+const { generateText } = require('ai');
 
-class OpenAIService {
+class GenAIService {
     constructor() {
-        if (!OPENAI_API_KEY) {
-            throw new Error('OpenAI API key is not configured');
-        }
-
-        this.openai = new OpenAI({
-            apiKey: OPENAI_API_KEY
-        });
-
-        this.defaultConfig = {
-            model: OPENAI_MODEL,
-            max_tokens: OPENAI_MAX_TOKENS,
-            temperature: OPENAI_TEMPERATURE
-        };
     }
 
     /**
@@ -30,13 +19,11 @@ class OpenAIService {
      */
     async generateChatCompletion(messages, options = {}) {
         try {
-            const response = await this.openai.chat.completions.create({
-                ...this.defaultConfig,
-                ...options,
-                messages,
-            });
-
-            return response.choices[0].message;
+            const {text} =await generateText({
+                model:LLM_REGISTRY.languageModel("google.gemini-2.0-flash"),
+                messages: messages,
+            })
+            return { content: text };
         } catch (error) {
             throw new BadRequestError('Failed to generate chat completion: ' + error.message);
         }
@@ -65,10 +52,7 @@ class OpenAIService {
         };
 
         try {
-            const response = await this.generateChatCompletion([prompt, userMessage], {
-                temperature: 0.7 // Slightly creative but still consistent
-            });
-
+            const response = await this.generateChatCompletion([prompt, userMessage]);
             return {
                 suggestions: response.content,
                 reasoning: 'Based on your style preferences, the occasion, and weather conditions'
@@ -111,6 +95,6 @@ class OpenAIService {
 }
 
 // Singleton instance
-const openAIService = new OpenAIService();
+const openAIService = new GenAIService();
 
 module.exports = openAIService;

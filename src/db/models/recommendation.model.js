@@ -7,12 +7,12 @@ const RecommendationSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
     type: {
       type: String,
       enum: ['daily', 'event', 'weather', 'season', 'style', 'occasion', 'ai_suggestion'],
-      required: true,
+      required: false,
     },
     context: {
       type: mongoose.Schema.Types.Mixed,
@@ -73,20 +73,28 @@ const RecommendationSchema = new mongoose.Schema(
     aiSuggestions: {
       suggestions: {
         type: String,
-        required: function () {
-          return this.type === 'ai_suggestion';
-        }
+        required:false
       },
       reasoning: {
         type: String,
-        required: function () {
-          return this.type === 'ai_suggestion';
-        }
+        required: false
       }
     },
     createdAt: {
       type: Date,
       default: Date.now,
+    },
+    embedText: {
+      type: String,
+      required: false,
+    },
+    embedding: {
+      type: [Number],
+      required: false,
+    },
+    imageUrl: {
+      type: String,
+      required: false,
     },
   }
 );

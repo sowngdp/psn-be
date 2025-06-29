@@ -11,7 +11,6 @@ const ItemController = require('../controllers/item.controller');
  *   name: Items
  *   description: API quản lý vật phẩm
  */
-
 /**
  * @swagger
  * /items:
@@ -29,39 +28,25 @@ const ItemController = require('../controllers/item.controller');
  *             required:
  *               - name
  *               - category
+ *               - occasion
+ *               - note
  *             properties:
  *               name:
  *                 type: string
- *               description:
- *                 type: string
  *               category:
  *                 type: string
- *                 enum: [top, bottom, outerwear, dress, footwear, accessory, other]
  *               subCategory:
  *                 type: string
- *               color:
- *                 type: string
- *               pattern:
+ *               occasion:
  *                 type: string
  *               brand:
  *                 type: string
- *               size:
- *                 type: string
  *               material:
  *                 type: string
- *               season:
+ *               note:
  *                 type: string
- *                 enum: [spring, summer, fall, winter, all]
- *               occasion:
- *                 type: array
- *                 items:
- *                   type: string
- *               tags:
- *                 type: array
- *                 items:
- *                   type: string
- *               imageUrl:
- *                 type: string
+ *               aiMeta:
+ *                 type: object
  *     responses:
  *       201:
  *         description: Tạo vật phẩm thành công
@@ -70,6 +55,7 @@ const ItemController = require('../controllers/item.controller');
  *       401:
  *         description: Không được ủy quyền
  */
+
 router.post('/', authentication, ItemController.createItem);
 
 /**

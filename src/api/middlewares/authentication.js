@@ -16,7 +16,7 @@ const HEADER = {
 /**
  * Tạo cặp token mới
  * @param {Object} payload - Dữ liệu payload
- * @returns {Object} - Cặp token mới
+ * @returns {Promise<Object>} - Cặp token mới
  */
 const createTokenPair = async (payload) => {
   try {
@@ -26,14 +26,14 @@ const createTokenPair = async (payload) => {
     }
     
     const accessToken = JWT.sign(payload, jwtConfig.keys.private, {
-      expiresIn: jwtConfig.access.expiration,
-      algorithm: jwtConfig.access.algorithm
-    });
+     expiresIn: jwtConfig.access.expiration,
+      algorithm: jwtConfig.access.algorithm,
+    },undefined);
 
     const refreshToken = JWT.sign(payload, jwtConfig.keys.private, {
       expiresIn: jwtConfig.refresh.expiration,
       algorithm: jwtConfig.refresh.algorithm
-    });
+    }, undefined);
     
     return { accessToken, refreshToken };
   } catch (err) {

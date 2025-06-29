@@ -2,10 +2,11 @@
 
 const userModel = require('../db/models/user.model');
 const userStyleProfileModel = require('../db/models/user-style-profile.model');
-const { BadRequestError, NotFoundError, AuthFailureError, ConflictError } = require('../core/error.response');
+const { BadRequestError, NotFoundError, AuthFailureError } = require('../core/error.response');
 const { Types } = require('mongoose');
 const bcrypt = require('bcryptjs');
 const JWT = require('jsonwebtoken');
+const sharp = require('sharp');
 const { JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRATION } = require('../configs/env');
 
 class UserService {
@@ -77,6 +78,20 @@ class UserService {
     const user = await userModel.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
     if (!user) throw new NotFoundError('Không tìm thấy người dùng');
     return user;
+  }
+  
+  // Lấy thông tin người dùng cùng với profile style
+  static async getUserWithProfile(userId) {
+    const user = await userModel.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
+    if (!user) throw new NotFoundError('Không tìm thấy người dùng');
+    
+    // Lấy profile style của người dùng
+    const styleProfile = await userStyleProfileModel.findOne({ userId: new Types.ObjectId(userId) });
+    
+    return {
+      ...user.toObject(),
+      styleProfile: styleProfile || null
+    };
   }
   
   // Cập nhật thông tin người dùng
@@ -202,6 +217,46 @@ class UserService {
     return true;
   }
   
+  /**
+   * Upload và cập nhật avatar cho người dùng
+   * @param {string} userId - ID của người dùng
+   * @param {Object} file - File ảnh đã được upload
+   * @returns {Object} - Thông tin về avatar đã cập nhật
+   */
+  static async uploadUserAvatar(userId, file) {
+    // Kiểm tra người dùng tồn tại
+    const user = await userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundError('Không tìm thấy người dùng');
+    }
+
+    // Import các service cần thiết
+    const BackgroundRemovalService = require('./background-removal.service');
+
+    try {
+      // Resize ảnh về kích thước avatar (400x400) và chuyển sang PNG
+      const resizedBuffer = await sharp(file.buffer)
+        .resize(400, 400, { fit: 'cover' })
+        .png({ quality: 90 })
+        .toBuffer();
+
+      // Lưu ảnh bằng BackgroundRemovalService.saveImage
+      const avatarUrl = await BackgroundRemovalService.saveImage(resizedBuffer, 'png');
+
+      // Cập nhật avatar URL vào profile người dùng
+      const updatedUser = await userModel.findByIdAndUpdate(
+        userId,
+        { $set: { avatar: avatarUrl } },
+        { new: true }
+      ).select('-password');
+
+      return { avatar: avatarUrl, user: updatedUser };
+    } catch (error) {
+      console.error('Lỗi khi xử lý avatar:', error);
+      throw new BadRequestError('Không thể xử lý file ảnh. Vui lòng thử lại.');
+    }
+  }
+
   // Tạo các hàm tiện ích
   static getInfoData(object = {}, fields = []) {
     return fields.reduce((obj, field) => {
@@ -311,4 +366,4 @@ class UserService {
   }
 }
 
-module.exports = UserService; 
+module.exports = UserService;
